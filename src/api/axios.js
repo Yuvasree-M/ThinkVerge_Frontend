@@ -1,10 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api', // backend port
+  baseURL: process.env.REACT_APP_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
-
 // Attach JWT from localStorage
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
