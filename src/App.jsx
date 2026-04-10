@@ -28,7 +28,7 @@ import StudentSubmissionsPage from "./pages/student/StudentSubmissionsPage.jsx";
 
 // Layout
 import DashboardLayout from "./components/layout/DashboardLayout.jsx";
-
+import LogoutConfirm from "./components/common/LogoutConfirm"
 // Errors
 import { NotFoundPage, UnauthorizedPage } from "./pages/ErrorPages.jsx";
 
@@ -158,6 +158,10 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
 
         </Routes>
+
+
+  <LogoutConfirm />
+
       </Router>
     </AuthProvider>
   );

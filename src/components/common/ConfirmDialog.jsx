@@ -1,21 +1,71 @@
-import Modal from './Modal'
-import { AlertTriangle } from 'lucide-react'
+import { X } from "lucide-react"
+import clsx from "clsx"
 
-export default function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Confirm', danger = false }) {
+export default function ConfirmDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmLabel = "Confirm",
+  danger = false
+}) {
+  if (!isOpen) return null
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <div className="flex gap-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${danger ? 'bg-red-50' : 'bg-gold-50'}`}>
-          <AlertTriangle size={20} className={danger ? 'text-red-500' : 'text-gold-600'} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+
+      {/* overlay */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* modal */}
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in fade-in zoom-in-95">
+
+        {/* header */}
+        <div className="flex items-start justify-between mb-3">
+          <h3 className="text-lg font-semibold text-navy-900">
+            {title}
+          </h3>
+
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-slate-100"
+          >
+            <X size={16} />
+          </button>
         </div>
-        <p className="text-sm text-navy-600 leading-relaxed pt-1.5">{message}</p>
+
+        {/* message */}
+        <p className="text-sm text-slate-600 mb-6">
+          {message}
+        </p>
+
+        {/* actions */}
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm font-medium border hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={onConfirm}
+            className={clsx(
+              "px-4 py-2 rounded-lg text-sm font-semibold text-white",
+              danger
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-royal-gradient"
+            )}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+
       </div>
-      <div className="flex gap-3 mt-6 justify-end">
-        <button className="btn-secondary" onClick={onClose}>Cancel</button>
-        <button className={danger ? 'btn-danger' : 'btn-primary'} onClick={() => { onConfirm(); onClose() }}>
-          {confirmLabel}
-        </button>
-      </div>
-    </Modal>
+    </div>
   )
 }

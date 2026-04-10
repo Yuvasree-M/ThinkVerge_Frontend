@@ -13,6 +13,11 @@ export const userApi = {
   instructors:  ()     => api.get('/users/instructors'),
   students:     ()     => api.get('/users/students'),
   updateLastSeen: ()   => api.put('/users/last-seen'),
+
+  // ADMIN
+  all:          ()     => api.get('/users'),
+  changeRole:   (id, role) => api.put(`/users/${id}/role?role=${role}`),
+  deleteUser:   (id)   => api.delete(`/users/${id}`),
 }
 
 // ── Courses ───────────────────────────────────────────────
