@@ -1,95 +1,252 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { moduleApi } from '../../api/services'
-import { Layers, Plus, ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  Layers,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
+  Edit3
+} from 'lucide-react'
+
 import { PageSpinner } from '../common/Spinner'
 import LessonList from '../lessons/LessonList'
 import toast from 'react-hot-toast'
 
 export default function ModuleList({ courseId, editable = false }) {
   const qc = useQueryClient()
+
   const [expanded, setExpanded] = useState({})
   const [adding, setAdding] = useState(false)
-  const [title, setTitle] = useState('')
+  const [editingId, setEditingId] = useState(null)
+
+  // 🔥 separate states (IMPORTANT FIX)
+  const [newTitle, setNewTitle] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+
   const [saving, setSaving] = useState(false)
 
-  const { data: modules = [], isLoading } = useQuery({
+  // =========================
+  // FETCH MODULES
+  // =========================
+  const { data, isLoading } = useQuery({
     queryKey: ['modules', courseId],
     queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
     enabled: !!courseId,
   })
 
-  const toggle = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }))
+  const modules = Array.isArray(data) ? data : []
 
+  const toggle = (id) =>
+    setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
+
+  // =========================
+  // CREATE MODULE
+  // =========================
   const handleCreate = async (e) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!newTitle.trim()) return
+
     setSaving(true)
     try {
-      await moduleApi.create({ courseId, title })
+      await moduleApi.create({
+        courseId,
+        title: newTitle,
+        description: '',
+        orderIndex: modules.length + 1
+      })
+
       toast.success('Module created!')
-      setTitle(''); setAdding(false)
+      setNewTitle('')
+      setAdding(false)
+
       qc.invalidateQueries({ queryKey: ['modules', courseId] })
-    } catch { toast.error('Failed to create module') }
-    finally { setSaving(false) }
+    } catch {
+      toast.error('Failed to create module')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // =========================
+  // DELETE MODULE
+  // =========================
+  const handleDelete = async (id) => {
+    try {
+      await moduleApi.delete(id)
+      toast.success('Module deleted')
+
+      qc.invalidateQueries({ queryKey: ['modules', courseId] })
+    } catch {
+      toast.error('Delete failed')
+    }
+  }
+
+  // =========================
+  // UPDATE MODULE
+  // =========================
+  const handleUpdate = async (id) => {
+    if (!editTitle.trim()) return
+
+    try {
+      const existing = modules.find(m => m.id === id)
+
+      await moduleApi.update(id, {
+        title: editTitle,
+        description: existing?.description || '',
+        orderIndex: existing?.orderIndex || 0
+      })
+
+      toast.success('Module updated')
+
+      setEditingId(null)
+      setEditTitle('')
+
+      qc.invalidateQueries({ queryKey: ['modules', courseId] })
+    } catch {
+      toast.error('Update failed')
+    }
   }
 
   if (isLoading) return <PageSpinner />
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-display font-semibold text-navy-800">Course Modules</h3>
+
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-navy-800">Course Modules</h3>
+
         {editable && (
-          <button className="btn-ghost text-xs" onClick={() => setAdding(p => !p)}>
+          <button
+            className="btn-ghost text-xs"
+            onClick={() => setAdding(p => !p)}
+          >
             <Plus size={14} /> Add Module
           </button>
         )}
       </div>
 
+      {/* CREATE FORM */}
       {editable && adding && (
-        <form onSubmit={handleCreate} className="flex gap-2 p-3 bg-royal-50 rounded-xl border border-royal-100">
+        <form
+          onSubmit={handleCreate}
+          className="flex gap-2 p-3 bg-royal-50 rounded-xl border"
+        >
           <input
-            className="input flex-1 py-2 text-sm"
+            className="input flex-1 text-sm py-2"
             placeholder="Module title..."
-            value={title}
-            onChange={e => setTitle(e.target.value)}
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
             autoFocus
           />
-          <button type="submit" className="btn-primary py-2 text-xs" disabled={saving}>
+
+          <button
+            type="submit"
+            className="btn-primary text-xs"
+            disabled={saving}
+          >
             {saving ? '...' : 'Save'}
           </button>
-          <button type="button" className="btn-secondary py-2 text-xs" onClick={() => setAdding(false)}>
+
+          <button
+            type="button"
+            className="btn-secondary text-xs"
+            onClick={() => setAdding(false)}
+          >
             Cancel
           </button>
         </form>
       )}
 
+      {/* EMPTY */}
       {modules.length === 0 && (
-        <p className="text-sm text-slate-lms text-center py-6">No modules yet.</p>
+        <p className="text-sm text-center py-6 text-slate-lms">
+          No modules yet.
+        </p>
       )}
 
+      {/* MODULE LIST */}
       {modules.map((mod, idx) => (
-        <div key={mod.id} className="card p-0 overflow-hidden">
-          <button
-            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-royal-50 transition-colors text-left"
-            onClick={() => toggle(mod.id)}
-          >
-            <div className="w-7 h-7 rounded-lg bg-royal-gradient flex items-center justify-center flex-shrink-0 shadow-royal text-white text-xs font-bold">
+        <div key={mod.id} className="card overflow-hidden">
+
+          {/* MODULE HEADER */}
+          <div className="flex items-center gap-2 px-4 py-3 hover:bg-royal-50">
+
+            {/* expand */}
+            <button onClick={() => toggle(mod.id)}>
+              {expanded[mod.id]
+                ? <ChevronDown size={16} />
+                : <ChevronRight size={16} />
+              }
+            </button>
+
+            {/* index */}
+            <div className="w-7 h-7 rounded-lg bg-royal-gradient text-white flex items-center justify-center text-xs font-bold">
               {idx + 1}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-navy-800 text-sm">{mod.title}</p>
-            </div>
-            <Layers size={14} className="text-slate-lms" />
-            {expanded[mod.id]
-              ? <ChevronDown size={16} className="text-slate-lms" />
-              : <ChevronRight size={16} className="text-slate-lms" />
-            }
-          </button>
 
+            {/* title */}
+            <div className="flex-1">
+              <p className="font-semibold text-sm">{mod.title}</p>
+            </div>
+
+            <Layers size={14} />
+
+            {/* ACTIONS */}
+            {editable && (
+              <div className="flex gap-2">
+
+                {/* EDIT */}
+                <button
+                  onClick={() => {
+                    setEditingId(mod.id)
+                    setEditTitle(mod.title)
+                  }}
+                >
+                  <Edit3 size={14} />
+                </button>
+
+                {/* DELETE */}
+                <button onClick={() => handleDelete(mod.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* EDIT FORM */}
+          {editable && editingId === mod.id && (
+            <div className="p-3 border-t bg-royal-50 flex gap-2">
+              <input
+                className="input flex-1 text-sm py-2"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+
+              <button
+                className="btn-primary text-xs"
+                onClick={() => handleUpdate(mod.id)}
+              >
+                Update
+              </button>
+
+              <button
+                className="btn-secondary text-xs"
+                onClick={() => {
+                  setEditingId(null)
+                  setEditTitle('')
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* LESSONS */}
           {expanded[mod.id] && (
-            <div className="border-t border-royal-50 px-4 py-4 bg-surface">
+            <div className="border-t px-4 py-4 bg-surface">
               <LessonList moduleId={mod.id} editable={editable} />
             </div>
           )}

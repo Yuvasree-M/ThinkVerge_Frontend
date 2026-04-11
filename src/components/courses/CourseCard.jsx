@@ -13,8 +13,8 @@ export default function CourseCard({ course, to, actions, showStatus = false }) 
     <div className="card-hover flex flex-col h-full group">
       {/* Thumbnail */}
       <div className="relative h-40 rounded-xl overflow-hidden mb-4 bg-royal-gradient">
-        {course.thumbnailUrl ? (
-          <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+        {course.thumbnail? (
+          <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-hero-pattern">
             <BookOpen size={36} className="text-white/60" />

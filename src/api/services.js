@@ -33,18 +33,32 @@ export const courseApi = {
   reject:     (id)     => api.put(`/courses/admin/${id}/reject`),
 }
 
-// ── Modules ───────────────────────────────────────────────
+// ── Modules API ───────────────────────────────────────────────
+
 export const moduleApi = {
-  create:      (data)     => api.post('/modules', data),
-  getByCourse: (courseId) => api.get(`/modules/course/${courseId}`),
+  create: (data, instructorId) =>
+  api.post(`/modules?instructorId=${instructorId}`, data),
+
+update: (id, data) => api.put(`/modules/${id}`, data),
+delete: (id) => api.delete(`/modules/${id}`),
+getByCourse: (courseId) => api.get(`/modules/course/${courseId}`),
 }
 
 // ── Lessons ───────────────────────────────────────────────
 export const lessonApi = {
-  create: (formData) => api.post('/lessons', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  getByModule: (moduleId) => api.get(`/lessons/module/${moduleId}`),
+  create: (formData) =>
+    api.post('/lessons', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getByModule: (moduleId) =>
+    api.get(`/lessons/module/${moduleId}`),
+
+  update: (id, data) =>
+    api.put(`/lessons/${id}`, data),
+
+  delete: (id) =>
+    api.delete(`/lessons/${id}`),
 }
 
 // ── Assignments ───────────────────────────────────────────
