@@ -46,17 +46,15 @@ getByCourse: (courseId) => api.get(`/modules/course/${courseId}`),
 
 // ── Lessons ───────────────────────────────────────────────
 export const lessonApi = {
-  create: (formData) =>
-    api.post('/lessons', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
-
+  create: (data) =>
+    api.post('/lessons', data),           // Content-Type: application/json (axios default)
+ 
   getByModule: (moduleId) =>
     api.get(`/lessons/module/${moduleId}`),
-
+ 
   update: (id, data) =>
     api.put(`/lessons/${id}`, data),
-
+ 
   delete: (id) =>
     api.delete(`/lessons/${id}`),
 }

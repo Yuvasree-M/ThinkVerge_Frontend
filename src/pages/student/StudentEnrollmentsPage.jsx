@@ -47,8 +47,8 @@ export default function StudentEnrollmentsPage() {
             {approved.map(e => (
               <div key={e.id} className="card-hover flex flex-col gap-3">
                 <div className="h-28 rounded-xl bg-royal-gradient flex items-center justify-center relative overflow-hidden">
-                  {e.course?.thumbnailUrl
-                    ? <img src={e.course.thumbnailUrl} alt={e.course.title} className="w-full h-full object-cover" />
+                  {e.course?.thumbnail
+                    ? <img src={e.course.thumbnail} alt={e.course.title} className="w-full h-full object-cover" />
                     : <BookOpen size={28} className="text-white/60" />
                   }
                   <div className="absolute bottom-2 left-2">
