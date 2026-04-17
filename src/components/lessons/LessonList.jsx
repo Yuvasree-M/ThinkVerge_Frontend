@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { lessonApi, uploadApi } from '../../api/services'
 import {
   Plus, Trash2, Edit, Video, FileText,
-  File, Image, ChevronDown, ChevronUp, X
+  File, Image, ChevronDown, ChevronUp, X,
+  Download, ExternalLink
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -22,6 +23,25 @@ const EMPTY_FORM = {
   title: '', type: 'VIDEO',
   content: '', videoUrl: '',
   durationSeconds: '', orderIndex: '',
+}
+
+// ── Download helper ───────────────────────────────────────
+async function handleDownload(url, filename) {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(blobUrl)
+  } catch {
+    // Fallback: open in new tab if CORS blocks direct download
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 }
 
 // ── Type-specific fields ──────────────────────────────────
@@ -151,6 +171,120 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
   }
 }
 
+// ── Lesson preview panel ──────────────────────────────────
+function LessonPreview({ lesson }) {
+  const url = lesson.type === 'VIDEO' ? lesson.videoUrl : lesson.content
+  const filename = lesson.title.replace(/\s+/g, '_')
+
+  return (
+    <div className="border-t border-gray-100 p-3 bg-gray-50 space-y-3">
+
+      {/* TEXT */}
+      {lesson.type === 'TEXT' && (
+        <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-6">{lesson.content}</p>
+      )}
+
+      {/* IMAGE — preview + download */}
+      {lesson.type === 'IMAGE' && lesson.content && (
+        <div className="space-y-2">
+          <img
+            src={lesson.content}
+            alt={lesson.title}
+            className="max-h-48 rounded object-contain"
+          />
+          <div className="flex gap-2">
+            <a
+              href={lesson.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
+            >
+              <ExternalLink size={13} /> View Full Size
+            </a>
+            <button
+              onClick={() => handleDownload(lesson.content, `${filename}.jpg`)}
+              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
+            >
+              <Download size={13} /> Download Image
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PDF — embed viewer + download */}
+      {lesson.type === 'PDF' && lesson.content && (
+        <div className="space-y-2">
+          <iframe
+            src={lesson.content}
+            title={lesson.title}
+            className="w-full rounded border border-gray-200"
+            style={{ height: '320px' }}
+          />
+          <div className="flex gap-2">
+            <a
+              href={lesson.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
+            >
+              <ExternalLink size={13} /> Open in Tab
+            </a>
+            <button
+              onClick={() => handleDownload(lesson.content, `${filename}.pdf`)}
+              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
+            >
+              <Download size={13} /> Download PDF
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* VIDEO — native player (Cloudinary) or link (YouTube/Vimeo) + download */}
+      {lesson.type === 'VIDEO' && lesson.videoUrl && (
+        <div className="space-y-2">
+          {/* If it's a direct file URL (Cloudinary), embed native player */}
+          {/cloudinary\.com/.test(lesson.videoUrl) ? (
+            <video
+              src={lesson.videoUrl}
+              controls
+              className="w-full rounded border border-gray-200 max-h-64"
+            />
+          ) : (
+            /* YouTube / Vimeo / other — show link */
+            <a
+              href={lesson.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+            >
+              <ExternalLink size={14} /> Watch Video
+            </a>
+          )}
+          <div className="flex gap-2">
+            <a
+              href={lesson.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+            >
+              <ExternalLink size={13} /> Open in Tab
+            </a>
+            {/* Only show download for direct (Cloudinary) URLs */}
+            {/cloudinary\.com/.test(lesson.videoUrl) && (
+              <button
+                onClick={() => handleDownload(lesson.videoUrl, `${filename}.mp4`)}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              >
+                <Download size={13} /> Download Video
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Lesson row ────────────────────────────────────────────
 function LessonRow({ lesson, editable, onEdit, onDelete }) {
   const { icon: Icon, color, bg } = getTypeConfig(lesson.type)
@@ -161,6 +295,13 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
     (lesson.type === 'IMAGE' && lesson.content)  ||
     (lesson.type === 'PDF'   && lesson.content)  ||
     (lesson.type === 'VIDEO' && lesson.videoUrl)
+
+  // Determine download URL and label for the badge
+  const downloadUrl  = lesson.type === 'VIDEO' ? lesson.videoUrl : lesson.content
+  const isDownloadable =
+    lesson.type === 'IMAGE' ||
+    lesson.type === 'PDF'   ||
+    (lesson.type === 'VIDEO' && /cloudinary\.com/.test(lesson.videoUrl || ''))
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -179,6 +320,19 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
             )}
             {lesson.orderIndex != null && (
               <span className="text-xs text-gray-400">#{lesson.orderIndex}</span>
+            )}
+            {/* Download badge — visible to everyone */}
+            {isDownloadable && downloadUrl && (
+              <button
+                onClick={() => {
+                  const ext = lesson.type === 'PDF' ? '.pdf' : lesson.type === 'IMAGE' ? '.jpg' : '.mp4'
+                  handleDownload(downloadUrl, `${lesson.title.replace(/\s+/g, '_')}${ext}`)
+                }}
+                className={`flex items-center gap-0.5 text-xs font-medium ${color} hover:opacity-70 transition-opacity ml-1`}
+                title={`Download ${lesson.type}`}
+              >
+                <Download size={11} /> Download
+              </button>
             )}
           </div>
         </div>
@@ -204,28 +358,7 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
         </div>
       </div>
 
-      {expanded && (
-        <div className="border-t border-gray-100 p-3 bg-gray-50">
-          {lesson.type === 'TEXT' && (
-            <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-6">{lesson.content}</p>
-          )}
-          {lesson.type === 'IMAGE' && (
-            <img src={lesson.content} alt={lesson.title} className="max-h-48 rounded object-contain" />
-          )}
-          {lesson.type === 'PDF' && (
-            <a href={lesson.content} target="_blank" rel="noopener noreferrer"
-              className="text-sm text-red-600 hover:underline flex items-center gap-1">
-              <File size={14} /> Open PDF
-            </a>
-          )}
-          {lesson.type === 'VIDEO' && lesson.videoUrl && (
-            <a href={lesson.videoUrl} target="_blank" rel="noopener noreferrer"
-              className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-              <Video size={14} /> Watch Video
-            </a>
-          )}
-        </div>
-      )}
+      {expanded && <LessonPreview lesson={lesson} />}
     </div>
   )
 }
