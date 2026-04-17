@@ -3,38 +3,61 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { lessonApi, moduleApi, progressApi } from '../../api/services'
 import {
   ChevronDown, ChevronUp, CheckCircle2,
-  ExternalLink, Download, Video, FileText, File, Image
+  ExternalLink, Download, Video, FileText, File, Image,
+  BookOpen, Lock
 } from 'lucide-react'
 
-// ── TYPE CONFIG ─────────────────────────────
+// ── TYPE CONFIG ─────────────────────────────────
 const TYPE_CONFIG = {
-  VIDEO: { icon: Video,    color: 'text-blue-500',   bg: 'bg-blue-50',   label: 'Video'  },
-  TEXT:  { icon: FileText, color: 'text-green-500',  bg: 'bg-green-50',  label: 'Text'   },
-  PDF:   { icon: File,     color: 'text-red-500',    bg: 'bg-red-50',    label: 'PDF'    },
-  IMAGE: { icon: Image,    color: 'text-purple-500', bg: 'bg-purple-50', label: 'Image'  },
+  VIDEO: {
+    icon: Video,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    badge: 'bg-blue-100 text-blue-700',
+    label: 'Video',
+  },
+  TEXT: {
+    icon: FileText,
+    color: 'text-violet-600',
+    bg: 'bg-violet-50',
+    badge: 'bg-violet-100 text-violet-700',
+    label: 'Reading',
+  },
+  PDF: {
+    icon: File,
+    color: 'text-rose-500',
+    bg: 'bg-rose-50',
+    badge: 'bg-rose-100 text-rose-600',
+    label: 'PDF',
+  },
+  IMAGE: {
+    icon: Image,
+    color: 'text-amber-500',
+    bg: 'bg-amber-50',
+    badge: 'bg-amber-100 text-amber-700',
+    label: 'Image',
+  },
 }
 const getTypeConf = (type) => TYPE_CONFIG[type] || TYPE_CONFIG.TEXT
 
-// ── DOWNLOAD ────────────────────────────────
+// ── DOWNLOAD ─────────────────────────────────────
 async function handleDownload(url, filename) {
   try {
     const res = await fetch(url)
     const blob = await res.blob()
     const blobUrl = URL.createObjectURL(blob)
-
     const a = document.createElement('a')
     a.href = blobUrl
     a.download = filename
     a.click()
-
     URL.revokeObjectURL(blobUrl)
   } catch {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 }
 
-// ── LESSON ROW ──────────────────────────────
-function LessonViewRow({ lesson, progressEntry }) {
+// ── LESSON ROW ────────────────────────────────────
+function LessonViewRow({ lesson, progressEntry, index }) {
   const queryClient = useQueryClient()
   const [expanded, setExpanded] = useState(false)
 
@@ -45,7 +68,9 @@ function LessonViewRow({ lesson, progressEntry }) {
     progressEntry?.completed ||
     (progressEntry?.percentage ?? 0) >= 100
 
-  // ── Auto-complete ──
+  const percentage = progressEntry?.percentage ?? 0
+
+  // Auto-complete text/pdf/image on expand
   useEffect(() => {
     if (!expanded || isDone) return
     if (!['TEXT', 'PDF', 'IMAGE'].includes(lesson.type)) return
@@ -60,103 +85,130 @@ function LessonViewRow({ lesson, progressEntry }) {
         queryClient.invalidateQueries({ queryKey: ['my-progress'] })
       } catch {}
     }
-
     autoComplete()
   }, [expanded, isDone, lesson.id, lesson.type])
 
-  // ── Video progress ──
+  // Video progress
   const lastReportedRef = useRef(-1)
 
   const handleVideoProgress = (e) => {
     const video = e.target
     if (!video.duration) return
+    const pct = Math.floor((video.currentTime / video.duration) * 100)
 
-    const percentage = Math.floor((video.currentTime / video.duration) * 100)
-
-    if (percentage % 10 === 0 && percentage !== lastReportedRef.current) {
-      lastReportedRef.current = percentage
-      progressApi.updateVideo(lesson.id, percentage)
+    if (pct % 10 === 0 && pct !== lastReportedRef.current) {
+      lastReportedRef.current = pct
+      progressApi.updateVideo(lesson.id, pct)
       queryClient.invalidateQueries({ queryKey: ['my-progress'] })
     }
 
-    if (percentage >= 95 && !isDone) {
+    if (pct >= 95 && !isDone) {
       progressApi.completeLesson(lesson.id)
       queryClient.invalidateQueries({ queryKey: ['my-progress'] })
     }
   }
 
   return (
-    <div className={`rounded-xl border transition-all shadow-sm ${
+    <div className={`rounded-xl border transition-all duration-200 ${
       isDone
-        ? 'bg-emerald-50 border-emerald-100'
-        : 'bg-white border-gray-100 hover:shadow-md'
+        ? 'border-emerald-100 bg-emerald-50/50'
+        : expanded
+          ? 'border-indigo-100 bg-white shadow-sm'
+          : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
     }`}>
 
       {/* HEADER */}
-      <div className="flex items-center gap-3 p-3 sm:p-4">
+      <button
+        className="w-full flex items-center gap-3 p-3 sm:p-4 text-left"
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={expanded}
+      >
+        {/* Index number */}
+        <span className={`shrink-0 w-6 h-6 rounded-full text-xs font-semibold flex items-center justify-center ${
+          isDone
+            ? 'bg-emerald-100 text-emerald-600'
+            : 'bg-gray-100 text-gray-400'
+        }`}>
+          {isDone ? <CheckCircle2 size={13} className="text-emerald-500" /> : index + 1}
+        </span>
 
-        {/* ICON */}
-        <div className={`${conf.bg} ${conf.color} p-2 rounded-lg`}>
-          <Icon size={16} />
+        {/* Type icon */}
+        <div className={`shrink-0 ${conf.bg} ${conf.color} p-2 rounded-lg`}>
+          <Icon size={14} />
         </div>
 
-        {/* TEXT */}
+        {/* Text */}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm sm:text-base font-medium truncate ${
-            isDone ? 'line-through text-gray-400' : 'text-gray-800'
-          }`}>
+          <p className={`text-sm font-medium`}>
             {lesson.title}
           </p>
 
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className={`text-xs font-medium ${conf.color}`}>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${conf.badge}`}>
               {conf.label}
             </span>
 
-            {progressEntry?.percentage > 0 && !isDone && (
-              <span className="text-xs text-blue-500 font-semibold">
-                {progressEntry.percentage}%
+            {percentage > 0 && !isDone && (
+              <span className="text-xs text-indigo-500 font-semibold">
+                {percentage}% watched
+              </span>
+            )}
+
+            {isDone && (
+              <span className="text-xs text-emerald-500 font-medium">
+                Completed
               </span>
             )}
           </div>
         </div>
 
-        {/* ACTION */}
-        <div className="flex items-center gap-2">
-          {isDone && (
-            <CheckCircle2 size={18} className="text-emerald-500" />
-          )}
-
-          <button
-            onClick={() => setExpanded(v => !v)}
-            className="p-1 rounded hover:bg-gray-100"
-          >
-            {expanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-          </button>
+        {/* Chevron */}
+        <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+          expanded ? 'bg-indigo-100 text-indigo-600' : 'text-gray-300 hover:bg-gray-100'
+        }`}>
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </div>
-      </div>
+      </button>
 
-      {/* CONTENT */}
+      {/* VIDEO PROGRESS BAR (inline, slim) */}
+      {percentage > 0 && !isDone && lesson.type === 'VIDEO' && (
+        <div className="px-4 pb-0">
+          <div className="w-full h-0.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-400 transition-all duration-500"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* EXPANDED CONTENT */}
       {expanded && (
-        <div className="border-t bg-gray-50 p-3 sm:p-4 space-y-3">
+        <div className="border-t border-gray-100 bg-gray-50/80 p-3 sm:p-4 space-y-3 rounded-b-xl">
 
           {lesson.type === 'TEXT' && (
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {lesson.content}
-            </p>
+            <div className="prose prose-sm max-w-none text-gray-700">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                {lesson.content}
+              </p>
+            </div>
           )}
 
           {lesson.type === 'IMAGE' && lesson.fileUrl && (
-            <img
-              src={lesson.fileUrl}
-              className="w-full max-h-64 object-contain rounded"
-            />
+            <div className="rounded-lg overflow-hidden border border-gray-200">
+              <img
+                src={lesson.fileUrl}
+                alt={lesson.title}
+                className="w-full max-h-72 object-contain bg-gray-100"
+              />
+            </div>
           )}
 
           {lesson.type === 'PDF' && lesson.fileUrl && (
             <iframe
               src={lesson.fileUrl}
-              className="w-full h-72 rounded border"
+              title={lesson.title}
+              className="w-full h-80 rounded-lg border border-gray-200"
             />
           )}
 
@@ -164,28 +216,30 @@ function LessonViewRow({ lesson, progressEntry }) {
             <video
               src={lesson.fileUrl}
               controls
-              className="w-full max-h-72 rounded"
+              className="w-full max-h-72 rounded-lg border border-gray-200 bg-black"
               onTimeUpdate={handleVideoProgress}
             />
           )}
 
-          {/* ACTIONS */}
+          {/* FILE ACTIONS */}
           {lesson.fileUrl && (
-            <div className="flex gap-4 flex-wrap text-xs font-medium">
+            <div className="flex items-center gap-1 pt-1 flex-wrap">
               <a
                 href={lesson.fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-blue-600 hover:underline"
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-indigo-600 bg-white border border-gray-200 hover:border-indigo-200 px-3 py-1.5 rounded-lg transition-colors"
               >
-                <ExternalLink size={12}/> Open
+                <ExternalLink size={11} />
+                Open
               </a>
 
               <button
                 onClick={() => handleDownload(lesson.fileUrl, lesson.title)}
-                className="flex items-center gap-1 text-blue-600 hover:underline"
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-indigo-600 bg-white border border-gray-200 hover:border-indigo-200 px-3 py-1.5 rounded-lg transition-colors"
               >
-                <Download size={12}/> Download
+                <Download size={11} />
+                Download
               </button>
             </div>
           )}
@@ -195,54 +249,128 @@ function LessonViewRow({ lesson, progressEntry }) {
   )
 }
 
-// ── MODULE SECTION ──────────────────────────
-function ModuleLessonsSection({ module, progressMap }) {
-  const { data: lessons = [] } = useQuery({
+// ── MODULE SECTION ────────────────────────────────
+function ModuleLessonsSection({ module, progressMap, moduleIndex }) {
+  const { data: lessons = [], isLoading } = useQuery({
     queryKey: ['lessons', module.id],
     queryFn: () => lessonApi.getByModule(module.id).then(r => r.data),
     enabled: !!module.id,
   })
 
+  const completedCount = lessons.filter(l => progressMap[l.id]?.completed).length
+  const moduleProgress = lessons.length > 0
+    ? Math.round((completedCount / lessons.length) * 100)
+    : 0
+  const isModuleDone = lessons.length > 0 && completedCount === lessons.length
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <h4 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase">
-          {module.title}
-        </h4>
+      {/* MODULE HEADER */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
+          isModuleDone
+            ? 'bg-emerald-100 text-emerald-600'
+            : 'bg-gray-100 text-gray-500'
+        }`}>
+          {isModuleDone ? <CheckCircle2 size={14} /> : moduleIndex + 1}
+        </div>
 
-        <span className="text-xs text-gray-400">
-          {lessons.filter(l => progressMap[l.id]?.completed).length}/{lessons.length}
-        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-sm font-semibold text-gray-700 truncate">
+              {module.title}
+            </h4>
+            <span className={`shrink-0 text-xs font-medium tabular-nums ${
+              isModuleDone ? 'text-emerald-500' : 'text-gray-400'
+            }`}>
+              {completedCount}/{lessons.length}
+            </span>
+          </div>
+
+          {/* Mini progress bar */}
+          {lessons.length > 0 && (
+            <div className="mt-1.5 w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isModuleDone ? 'bg-emerald-400' : 'bg-indigo-400'
+                }`}
+                style={{ width: `${moduleProgress}%` }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {lessons.map(lesson => (
-        <LessonViewRow
-          key={lesson.id}
-          lesson={lesson}
-          progressEntry={progressMap[lesson.id]}
-        />
-      ))}
+      {/* LESSONS */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      ) : lessons.length === 0 ? (
+        <div className="flex items-center gap-2 text-sm text-gray-400 py-4 pl-10">
+          <BookOpen size={14} />
+          No lessons in this module
+        </div>
+      ) : (
+        <div className="space-y-2 pl-0 sm:pl-2">
+          {lessons.map((lesson, idx) => (
+            <LessonViewRow
+              key={lesson.id}
+              lesson={lesson}
+              progressEntry={progressMap[lesson.id]}
+              index={idx}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-// ── MAIN PANEL ──────────────────────────────
+// ── MAIN PANEL ────────────────────────────────────
 export default function CourseLessonsPanel({ courseId, progressMap }) {
-  const { data: modules = [] } = useQuery({
+  const { data: modules = [], isLoading } = useQuery({
     queryKey: ['modules', courseId],
     queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
     enabled: !!courseId,
   })
 
+  if (isLoading) return (
+    <div className="space-y-4 py-2">
+      {[1, 2].map(i => (
+        <div key={i} className="space-y-2">
+          <div className="h-6 w-40 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-12 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
+      ))}
+    </div>
+  )
+
+  if (modules.length === 0) return (
+    <div className="text-center py-12 text-gray-400">
+      <BookOpen size={28} className="mx-auto mb-2 opacity-40" />
+      <p className="text-sm">No modules available for this course</p>
+    </div>
+  )
+
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {modules.map(mod => (
+    <div
+    className="max-h-[75vh] overflow-y-auto pr-2 space-y-6 sm:space-y-8 py-1 [&::-webkit-scrollbar]:hidden"
+    style={{
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+    }}
+  >
+      {modules.map((mod, idx) => (
         <ModuleLessonsSection
           key={mod.id}
           module={mod}
           progressMap={progressMap}
+          moduleIndex={idx}
         />
       ))}
     </div>

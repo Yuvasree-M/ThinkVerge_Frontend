@@ -3,22 +3,40 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { courseApi } from '../../api/services'
 import CourseCard from '../../components/courses/CourseCard'
 import CreateCourseModal from '../../components/courses/CreateCourseModal'
+import EditCourseModal from '../../components/courses/EditCourseModal'
 import ModuleList from '../../components/modules/ModuleList'
 import Modal from '../../components/common/Modal'
 import { PageSpinner } from '../../components/common/Spinner'
 import EmptyState from '../../components/common/EmptyState'
 import useModal from '../../hooks/useModal'
-import { Plus, BookOpen, Layers } from 'lucide-react'
+import { Plus, BookOpen, Layers, Pencil, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function InstructorCoursesPage() {
   const qc = useQueryClient()
   const createModal  = useModal()
+  const editModal    = useModal()
   const modulesModal = useModal()
+  const [deletingId, setDeletingId] = useState(null)
 
   const { data: courses = [], isLoading } = useQuery({
     queryKey: ['my-courses'],
     queryFn: () => courseApi.myCourses().then(r => r.data),
   })
+
+  const handleDelete = async (course) => {
+    if (!window.confirm(`Delete "${course.title}"? This cannot be undone.`)) return
+    setDeletingId(course.id)
+    try {
+      await courseApi.delete(course.id)
+      toast.success('Course deleted.')
+      qc.invalidateQueries({ queryKey: ['my-courses'] })
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to delete course')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   if (isLoading) return <PageSpinner />
 
@@ -48,24 +66,56 @@ export default function InstructorCoursesPage() {
               course={course}
               showStatus
               actions={
-                <button
-                  className="btn-ghost text-xs flex-1 justify-center"
-                  onClick={() => modulesModal.open(course)}
-                >
-                  <Layers size={13} /> Manage Content
-                </button>
+                <>
+                  {/* Manage Content */}
+                  <button
+                    className="btn-ghost text-xs flex-1 justify-center"
+                    onClick={() => modulesModal.open(course)}
+                  >
+                    <Layers size={13} /> Content
+                  </button>
+
+                  {/* Edit */}
+                  <button
+                    className="btn-ghost text-xs px-2 justify-center text-royal-600 hover:bg-royal-50"
+                    onClick={() => editModal.open(course)}
+                    title="Edit course"
+                  >
+                    <Pencil size={13} />
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    className="btn-ghost text-xs px-2 justify-center text-red-500 hover:bg-red-50"
+                    onClick={() => handleDelete(course)}
+                    disabled={deletingId === course.id}
+                    title="Delete course"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </>
               }
             />
           ))}
         </div>
       )}
 
+      {/* Create Modal */}
       <CreateCourseModal
         isOpen={createModal.isOpen}
         onClose={createModal.close}
         onCreated={() => qc.invalidateQueries({ queryKey: ['my-courses'] })}
       />
 
+      {/* Edit Modal */}
+      <EditCourseModal
+        isOpen={editModal.isOpen}
+        onClose={editModal.close}
+        course={editModal.data}
+        onUpdated={() => qc.invalidateQueries({ queryKey: ['my-courses'] })}
+      />
+
+      {/* Manage Content Modal */}
       <Modal
         isOpen={modulesModal.isOpen}
         onClose={modulesModal.close}

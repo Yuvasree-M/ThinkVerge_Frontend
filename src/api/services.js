@@ -22,59 +22,53 @@ export const userApi = {
 
 // ── Courses ───────────────────────────────────────────────
 export const courseApi = {
-  getAll:     ()       => api.get('/courses'),
-     getAllAdmin: () => api.get('/courses/admin/all'),
-  getById:    (id)     => api.get(`/courses/${id}`),
-  myCourses:  ()       => api.get('/courses/instructor/my'),
-  create: (formData)   => api.post('/courses/instructor', formData, {
+  getAll:     ()           => api.get('/courses'),
+  getAllAdmin: ()           => api.get('/courses/admin/all'),
+  getById:    (id)         => api.get(`/courses/${id}`),
+  myCourses:  ()           => api.get('/courses/instructor/my'),
+  create:     (formData)   => api.post('/courses/instructor', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  approve:    (id)     => api.put(`/courses/admin/${id}/approve`),
-  reject:     (id)     => api.put(`/courses/admin/${id}/reject`),
+  update:     (id, formData) => api.put(`/courses/instructor/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  delete:     (id)         => api.delete(`/courses/instructor/${id}`),
+  approve:    (id)         => api.put(`/courses/admin/${id}/approve`),
+  reject:     (id)         => api.put(`/courses/admin/${id}/reject`),
 }
 
 // ── Modules API ───────────────────────────────────────────────
-
 export const moduleApi = {
-  create: (data, instructorId) =>
-  api.post(`/modules?instructorId=${instructorId}`, data),
-
-update: (id, data) => api.put(`/modules/${id}`, data),
-delete: (id) => api.delete(`/modules/${id}`),
-getByCourse: (courseId) => api.get(`/modules/course/${courseId}`),
+  create:    (data, instructorId) => api.post(`/modules?instructorId=${instructorId}`, data),
+  update:    (id, data)           => api.put(`/modules/${id}`, data),
+  delete:    (id)                 => api.delete(`/modules/${id}`),
+  getByCourse: (courseId)         => api.get(`/modules/course/${courseId}`),
 }
 
 // ── Lessons ───────────────────────────────────────────────
 export const lessonApi = {
-  create: (data) =>
-    api.post('/lessons', data),           // Content-Type: application/json (axios default)
- 
-  getByModule: (moduleId) =>
-    api.get(`/lessons/module/${moduleId}`),
- 
-  update: (id, data) =>
-    api.put(`/lessons/${id}`, data),
- 
-  delete: (id) =>
-    api.delete(`/lessons/${id}`),
+  create:      (data)       => api.post('/lessons', data),
+  getByModule: (moduleId)   => api.get(`/lessons/module/${moduleId}`),
+  update:      (id, data)   => api.put(`/lessons/${id}`, data),
+  delete:      (id)         => api.delete(`/lessons/${id}`),
 }
 
 // ── Assignments ───────────────────────────────────────────
 export const assignmentApi = {
-  create:    (data)     => api.post('/assignments', data),
-  update:    (id, data) => api.put(`/assignments/${id}`, data),
-  delete:    (id)       => api.delete(`/assignments/${id}`),
-  byCourse:  (courseId) => api.get(`/assignments/course/${courseId}`),
+  create:   (data)       => api.post('/assignments', data),
+  update:   (id, data)   => api.put(`/assignments/${id}`, data),
+  delete:   (id)         => api.delete(`/assignments/${id}`),
+  byCourse: (courseId)   => api.get(`/assignments/course/${courseId}`),
 }
 
 // ── Submissions ───────────────────────────────────────────
 export const submissionApi = {
-  submit:        (data)         => api.post('/submissions', data),
-  grade:         (id, data)     => api.put(`/submissions/${id}/grade`, data),
-  mySubmissions: ()             => api.get('/submissions/my'),
-  byAssignment:  (assignmentId) => api.get(`/submissions/assignment/${assignmentId}`),
+  submit: (data) => api.post('/submissions', data),
+  grade: (id, data) => api.put(`/submissions/${id}/grade`, data),
+  delete: (id) => api.delete(`/submissions/${id}`),
+  mySubmissions: () => api.get('/submissions/my'),
+  byAssignment: (assignmentId) => api.get(`/submissions/assignment/${assignmentId}`),
 }
-
 // ── Enrollments ───────────────────────────────────────────
 export const enrollmentApi = {
   request:       (courseId) => api.post(`/enrollments/${courseId}/request`),
@@ -82,22 +76,16 @@ export const enrollmentApi = {
   reject:        (id)       => api.put(`/enrollments/${id}/reject`),
   myEnrollments: ()         => api.get('/enrollments/my'),
   pending:       ()         => api.get('/enrollments/instructor/pending'),
-  all: () => api.get("/enrollments/instructor/all"),
+  all:           ()         => api.get('/enrollments/instructor/all'),
 }
 
 // ── Progress ──────────────────────────────────────────────
 export const progressApi = {
   updateVideo: (lessonId, percentage) =>
     api.post(`/progress/video/${lessonId}`, null, { params: { percentage } }),
-
-  completeText: (lessonId) =>
-    api.post(`/progress/text/${lessonId}/complete`),
-
-  // ✅ NEW → for PDF & IMAGE
-  completeLesson: (lessonId) =>
-    api.post(`/progress/complete/${lessonId}`),
-
-  myProgress: () => api.get('/progress/my'),
+  completeText:    (lessonId) => api.post(`/progress/text/${lessonId}/complete`),
+  completeLesson:  (lessonId) => api.post(`/progress/complete/${lessonId}`),
+  myProgress:      ()         => api.get('/progress/my'),
 }
 
 // ── File Upload ───────────────────────────────────────────
