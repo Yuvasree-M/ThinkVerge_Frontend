@@ -19,9 +19,10 @@ const LESSON_TYPES = [
 const getTypeConfig = (type) =>
   LESSON_TYPES.find(t => t.value === type) || LESSON_TYPES[0]
 
+// ✅ FIXED: replaced videoUrl with fileUrl — single field for all file types
 const EMPTY_FORM = {
   title: '', type: 'VIDEO',
-  content: '', videoUrl: '',
+  content: '', fileUrl: '',
   durationSeconds: '', orderIndex: '',
 }
 
@@ -47,6 +48,7 @@ async function handleDownload(url, filename) {
 // ── Type-specific fields ──────────────────────────────────
 function LessonTypeFields({ form, setForm, uploading, setUploading }) {
 
+  // ✅ FIXED: all uploaded file URLs go into fileUrl (not videoUrl or content)
   const handleFileUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -54,11 +56,7 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
     try {
       const res = await uploadApi.upload(file)
       const url = typeof res.data === 'string' ? res.data : res.data.url
-      if (form.type === 'VIDEO') {
-        setForm(p => ({ ...p, videoUrl: url }))
-      } else {
-        setForm(p => ({ ...p, content: url }))
-      }
+      setForm(p => ({ ...p, fileUrl: url }))
       toast.success('File uploaded!')
     } catch (err) {
       console.error(err)
@@ -74,10 +72,11 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Video URL</label>
+          {/* ✅ FIXED: value/onChange use fileUrl instead of videoUrl */}
           <input
             placeholder="Paste YouTube / Vimeo / direct URL"
-            value={form.videoUrl}
-            onChange={e => setForm(p => ({ ...p, videoUrl: e.target.value }))}
+            value={form.fileUrl}
+            onChange={e => setForm(p => ({ ...p, fileUrl: e.target.value }))}
             className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="flex items-center gap-2">
@@ -90,7 +89,8 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
             {uploading ? 'Uploading…' : 'Choose video file'}
             <input type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
           </label>
-          {form.videoUrl && <p className="text-xs text-green-600 truncate">✓ {form.videoUrl}</p>}
+          {/* ✅ FIXED: show fileUrl confirmation */}
+          {form.fileUrl && <p className="text-xs text-green-600 truncate">✓ {form.fileUrl}</p>}
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Duration (sec)</label>
@@ -112,6 +112,7 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Content</label>
+          {/* TEXT is the only type that uses content field — no change needed */}
           <textarea
             placeholder="Write lesson content here…"
             value={form.content}
@@ -132,12 +133,14 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PDF File</label>
+          {/* ✅ FIXED: show upload state using fileUrl instead of content */}
           <label className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 text-sm text-gray-500 cursor-pointer hover:border-red-400 hover:text-red-500 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
             <File size={16} />
-            {uploading ? 'Uploading…' : form.content ? '✓ Uploaded — click to replace' : 'Upload PDF'}
+            {uploading ? 'Uploading…' : form.fileUrl ? '✓ Uploaded — click to replace' : 'Upload PDF'}
             <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} />
           </label>
-          {form.content && <p className="text-xs text-green-600 truncate">✓ {form.content}</p>}
+          {/* ✅ FIXED: show fileUrl confirmation */}
+          {form.fileUrl && <p className="text-xs text-green-600 truncate">✓ {form.fileUrl}</p>}
           <div>
             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Order</label>
             <input type="number" placeholder="e.g. 1" value={form.orderIndex}
@@ -151,9 +154,10 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Image File</label>
+          {/* ✅ FIXED: preview uses fileUrl instead of content */}
           <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 text-sm text-gray-500 cursor-pointer hover:border-purple-400 hover:text-purple-500 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-            {form.content
-              ? <img src={form.content} alt="preview" className="max-h-28 rounded object-contain" />
+            {form.fileUrl
+              ? <img src={form.fileUrl} alt="preview" className="max-h-28 rounded object-contain" />
               : <><Image size={20} /><span>{uploading ? 'Uploading…' : 'Upload image'}</span></>
             }
             <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
@@ -173,7 +177,7 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
 
 // ── Lesson preview panel ──────────────────────────────────
 function LessonPreview({ lesson }) {
-  const url = lesson.type === 'VIDEO' ? lesson.videoUrl : lesson.content
+  // ✅ FIXED: VIDEO reads lesson.fileUrl — matches LessonResponse from backend
   const filename = lesson.title.replace(/\s+/g, '_')
 
   return (
@@ -185,16 +189,17 @@ function LessonPreview({ lesson }) {
       )}
 
       {/* IMAGE — preview + download */}
-      {lesson.type === 'IMAGE' && lesson.content && (
+      {/* ✅ FIXED: lesson.fileUrl instead of lesson.content */}
+      {lesson.type === 'IMAGE' && lesson.fileUrl && (
         <div className="space-y-2">
           <img
-            src={lesson.content}
+            src={lesson.fileUrl}
             alt={lesson.title}
             className="max-h-48 rounded object-contain"
           />
           <div className="flex gap-2">
             <a
-              href={lesson.content}
+              href={lesson.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
@@ -202,7 +207,7 @@ function LessonPreview({ lesson }) {
               <ExternalLink size={13} /> View Full Size
             </a>
             <button
-              onClick={() => handleDownload(lesson.content, `${filename}.jpg`)}
+              onClick={() => handleDownload(lesson.fileUrl, `${filename}.jpg`)}
               className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
             >
               <Download size={13} /> Download Image
@@ -212,17 +217,18 @@ function LessonPreview({ lesson }) {
       )}
 
       {/* PDF — embed viewer + download */}
-      {lesson.type === 'PDF' && lesson.content && (
+      {/* ✅ FIXED: lesson.fileUrl instead of lesson.content */}
+      {lesson.type === 'PDF' && lesson.fileUrl && (
         <div className="space-y-2">
           <iframe
-            src={lesson.content}
+            src={lesson.fileUrl}
             title={lesson.title}
             className="w-full rounded border border-gray-200"
             style={{ height: '320px' }}
           />
           <div className="flex gap-2">
             <a
-              href={lesson.content}
+              href={lesson.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
@@ -230,7 +236,7 @@ function LessonPreview({ lesson }) {
               <ExternalLink size={13} /> Open in Tab
             </a>
             <button
-              onClick={() => handleDownload(lesson.content, `${filename}.pdf`)}
+              onClick={() => handleDownload(lesson.fileUrl, `${filename}.pdf`)}
               className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
             >
               <Download size={13} /> Download PDF
@@ -239,20 +245,21 @@ function LessonPreview({ lesson }) {
         </div>
       )}
 
-      {/* VIDEO — native player (Cloudinary) or link (YouTube/Vimeo) + download */}
-      {lesson.type === 'VIDEO' && lesson.videoUrl && (
+      {/* VIDEO — native player (Cloudinary) or link (YouTube/Vimeo) */}
+      {/* ✅ FIXED: lesson.fileUrl instead of lesson.videoUrl */}
+      {lesson.type === 'VIDEO' && lesson.fileUrl && (
         <div className="space-y-2">
           {/* If it's a direct file URL (Cloudinary), embed native player */}
-          {/cloudinary\.com/.test(lesson.videoUrl) ? (
+          {/cloudinary\.com/.test(lesson.fileUrl) ? (
             <video
-              src={lesson.videoUrl}
+              src={lesson.fileUrl}
               controls
               className="w-full rounded border border-gray-200 max-h-64"
             />
           ) : (
             /* YouTube / Vimeo / other — show link */
             <a
-              href={lesson.videoUrl}
+              href={lesson.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
@@ -262,7 +269,7 @@ function LessonPreview({ lesson }) {
           )}
           <div className="flex gap-2">
             <a
-              href={lesson.videoUrl}
+              href={lesson.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
@@ -270,9 +277,9 @@ function LessonPreview({ lesson }) {
               <ExternalLink size={13} /> Open in Tab
             </a>
             {/* Only show download for direct (Cloudinary) URLs */}
-            {/cloudinary\.com/.test(lesson.videoUrl) && (
+            {/cloudinary\.com/.test(lesson.fileUrl) && (
               <button
-                onClick={() => handleDownload(lesson.videoUrl, `${filename}.mp4`)}
+                onClick={() => handleDownload(lesson.fileUrl, `${filename}.mp4`)}
                 className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
               >
                 <Download size={13} /> Download Video
@@ -290,18 +297,19 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
   const { icon: Icon, color, bg } = getTypeConfig(lesson.type)
   const [expanded, setExpanded] = useState(false)
 
+  // ✅ FIXED: all file types check lesson.fileUrl (not lesson.videoUrl or lesson.content for files)
   const hasPreview =
-    (lesson.type === 'TEXT'  && lesson.content)  ||
-    (lesson.type === 'IMAGE' && lesson.content)  ||
-    (lesson.type === 'PDF'   && lesson.content)  ||
-    (lesson.type === 'VIDEO' && lesson.videoUrl)
+    (lesson.type === 'TEXT'  && lesson.content) ||
+    (lesson.type === 'IMAGE' && lesson.fileUrl) ||
+    (lesson.type === 'PDF'   && lesson.fileUrl) ||
+    (lesson.type === 'VIDEO' && lesson.fileUrl)
 
-  // Determine download URL and label for the badge
-  const downloadUrl  = lesson.type === 'VIDEO' ? lesson.videoUrl : lesson.content
+  // ✅ FIXED: downloadUrl always from lesson.fileUrl for file types
+  const downloadUrl = lesson.type === 'TEXT' ? null : lesson.fileUrl
   const isDownloadable =
     lesson.type === 'IMAGE' ||
     lesson.type === 'PDF'   ||
-    (lesson.type === 'VIDEO' && /cloudinary\.com/.test(lesson.videoUrl || ''))
+    (lesson.type === 'VIDEO' && /cloudinary\.com/.test(lesson.fileUrl || ''))
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -321,7 +329,7 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
             {lesson.orderIndex != null && (
               <span className="text-xs text-gray-400">#{lesson.orderIndex}</span>
             )}
-            {/* Download badge — visible to everyone */}
+            {/* Download badge */}
             {isDownloadable && downloadUrl && (
               <button
                 onClick={() => {
@@ -371,10 +379,12 @@ function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.title.trim()) { toast.error('Title is required'); return }
-    if (form.type === 'VIDEO' && !form.videoUrl.trim()) {
+    // ✅ FIXED: VIDEO validates fileUrl instead of videoUrl
+    if (form.type === 'VIDEO' && !form.fileUrl.trim()) {
       toast.error('Please add a video URL or upload a file'); return
     }
-    if ((form.type === 'PDF' || form.type === 'IMAGE') && !form.content.trim()) {
+    // ✅ FIXED: PDF and IMAGE validate fileUrl instead of content
+    if ((form.type === 'PDF' || form.type === 'IMAGE') && !form.fileUrl.trim()) {
       toast.error('Please upload a file first'); return
     }
     onSubmit(form)
@@ -400,7 +410,8 @@ function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
         <div className="grid grid-cols-4 gap-2 mt-1">
           {LESSON_TYPES.map(({ value, label, icon: Icon, color: c, bg }) => (
             <button key={value} type="button"
-              onClick={() => setForm(p => ({ ...p, type: value, content: '', videoUrl: '' }))}
+              // ✅ FIXED: reset fileUrl instead of videoUrl when switching types
+              onClick={() => setForm(p => ({ ...p, type: value, content: '', fileUrl: '' }))}
               className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border-2 text-xs font-medium transition-all ${
                 form.type === value
                   ? `border-current ${c} ${bg}`
@@ -448,7 +459,8 @@ export default function LessonList({ moduleId, editable = false }) {
 
   const lessons = Array.isArray(data) ? data : data?.content || data?.data || []
 
-  // CREATE — plain JSON (backend now uses @RequestBody, not @RequestPart)
+  // ✅ FIXED: send fileUrl to backend (matches LessonRequest.fileUrl DTO)
+  //           TEXT → content field only, all others → fileUrl field only
   const handleCreate = async (form) => {
     setSubmitting(true)
     try {
@@ -456,8 +468,8 @@ export default function LessonList({ moduleId, editable = false }) {
         moduleId,
         title:           form.title,
         type:            form.type,
-        content:         form.content         || null,
-        videoUrl:        form.videoUrl        || null,
+        content:         form.type === 'TEXT' ? (form.content || null) : null,
+        fileUrl:         form.type !== 'TEXT' ? (form.fileUrl  || null) : null,
         durationSeconds: form.durationSeconds ? Number(form.durationSeconds) : null,
         orderIndex:      form.orderIndex      ? Number(form.orderIndex)      : null,
       })
@@ -472,15 +484,15 @@ export default function LessonList({ moduleId, editable = false }) {
     }
   }
 
-  // UPDATE — plain JSON
+  // ✅ FIXED: same mapping for update
   const handleUpdate = async (id, form) => {
     setSubmitting(true)
     try {
       await lessonApi.update(id, {
         title:           form.title,
         type:            form.type,
-        content:         form.content         || null,
-        videoUrl:        form.videoUrl        || null,
+        content:         form.type === 'TEXT' ? (form.content || null) : null,
+        fileUrl:         form.type !== 'TEXT' ? (form.fileUrl  || null) : null,
         durationSeconds: form.durationSeconds ? Number(form.durationSeconds) : null,
         orderIndex:      form.orderIndex      ? Number(form.orderIndex)      : null,
       })
@@ -525,7 +537,8 @@ export default function LessonList({ moduleId, editable = false }) {
               title:           lesson.title                           || '',
               type:            lesson.type                           || 'VIDEO',
               content:         lesson.content                        || '',
-              videoUrl:        lesson.videoUrl                       || '',
+              // ✅ FIXED: pre-fill fileUrl from lesson.fileUrl (backend LessonResponse field)
+              fileUrl:         lesson.fileUrl                        || '',
               durationSeconds: lesson.durationSeconds != null ? String(lesson.durationSeconds) : '',
               orderIndex:      lesson.orderIndex      != null ? String(lesson.orderIndex)      : '',
             }}
