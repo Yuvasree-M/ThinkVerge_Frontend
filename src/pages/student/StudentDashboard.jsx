@@ -58,19 +58,33 @@ export default function StudentDashboard() {
             <Link to="/student/enrollments" className="btn-ghost text-xs">View all →</Link>
           </div>
           <div className="space-y-4">
-            {approved.slice(0, 4).map(e => {
-              const courseProgress = progress.filter(p => p.courseId === e.course?.id)
-              const pct = courseProgress.length ? Math.round(courseProgress.reduce((s, p) => s + (p.percentage || 0), 0) / courseProgress.length) : 0
-              return (
-                <div key={e.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm font-medium text-navy-800 truncate flex-1 mr-2">{e.course?.title}</p>
-                    <span className="text-xs text-royal-600 font-semibold flex-shrink-0">{pct}%</span>
-                  </div>
-                  <ProgressBar value={pct} showPercent={false} />
-                </div>
-              )
-            })}
+           {approved.slice(0, 4).map(e => {
+  const courseProgress = progress.filter(
+    p => p.courseId === e.course?.id
+  )
+
+  const completedLessons = courseProgress.filter(
+    p => p.completed || (p.percentage ?? 0) >= 100
+  ).length
+
+  const pct = courseProgress.length > 0
+    ? Math.round((completedLessons / courseProgress.length) * 100)
+    : 0
+
+  return (
+    <div key={e.id}>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-sm font-medium text-navy-800 truncate flex-1 mr-2">
+          {e.course?.title}
+        </p>
+        <span className="text-xs text-royal-600 font-semibold flex-shrink-0">
+          {pct}%
+        </span>
+      </div>
+      <ProgressBar value={pct} showPercent={false} />
+    </div>
+  )
+})}
             {approved.length === 0 && (
               <div className="text-center py-4">
                 <p className="text-sm text-slate-lms mb-3">No active courses yet.</p>

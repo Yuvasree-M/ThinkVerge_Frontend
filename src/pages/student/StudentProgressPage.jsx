@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressApi, enrollmentApi, lessonApi, moduleApi } from '../../api/services'
 import { PageSpinner } from '../../components/common/Spinner'
 import EmptyState from '../../components/common/EmptyState'
@@ -9,8 +9,7 @@ import {
   ChevronDown, ChevronUp, Download, ExternalLink,
   Video, File, Image, BookOpen
 } from 'lucide-react'
-import toast from 'react-hot-toast'
-
+import {useEffect} from 'react'
 // ── Download helper ───────────────────────────────────────
 async function handleDownload(url, filename) {
   try {
@@ -41,23 +40,78 @@ const getTypeConf = (type) => TYPE_CONFIG[type] || TYPE_CONFIG.TEXT
 
 // ── Single lesson viewer row ──────────────────────────────
 function LessonViewRow({ lesson, progressEntry }) {
+  const queryClient = useQueryClient()
   const [expanded, setExpanded] = useState(false)
   const conf = getTypeConf(lesson.type)
   const Icon = conf.icon
   const isDone = progressEntry?.completed || (progressEntry?.percentage ?? 0) >= 100
+const markComplete = async () => {
+  if (isDone) return
 
-  const downloadUrl  = lesson.type === 'VIDEO' ? lesson.videoUrl : lesson.content
+  try {
+     if (lesson.type === 'TEXT') {
+    await progressApi.completeText(lesson.id)
+
+  } else if (lesson.type === 'PDF' || lesson.type === 'IMAGE') {
+    await progressApi.completeLesson(lesson.id)
+
+  } 
+    queryClient.invalidateQueries(['my-progress'])
+  } catch (err) {
+    console.error('Progress update failed', err)
+  }
+}
+
+const handleVideoProgress = (e) => {
+  const video = e.target
+  if (!video.duration) return
+
+  const percentage = Math.floor((video.currentTime / video.duration) * 100)
+
+  // update progress every 10%
+  if (percentage > 0 && percentage % 10 === 0) {
+    progressApi.updateVideo(lesson.id, percentage)
+    queryClient.invalidateQueries(['my-progress'])
+  }
+
+  // ✅ AUTO COMPLETE when video ends
+ if (percentage >= 95 && !isDone) {
+  progressApi.completeLesson(lesson.id)
+  queryClient.invalidateQueries(['my-progress'])
+}
+}
+  const downloadUrl = lesson.fileUrl
   const isDownloadable =
     lesson.type === 'IMAGE' ||
     lesson.type === 'PDF'   ||
-    (lesson.type === 'VIDEO' && /cloudinary\.com/.test(lesson.videoUrl || ''))
+    (lesson.type === 'VIDEO' && /cloudinary\.com/.test(lesson.fileUrl || ''))
 
   const hasPreview =
     (lesson.type === 'TEXT'  && lesson.content)  ||
-    (lesson.type === 'IMAGE' && lesson.content)  ||
-    (lesson.type === 'PDF'   && lesson.content)  ||
-    (lesson.type === 'VIDEO' && lesson.videoUrl)
+ (lesson.type === 'IMAGE' && lesson.fileUrl) ||
+(lesson.type === 'PDF' && lesson.fileUrl) ||
+(lesson.type === 'VIDEO' && lesson.fileUrl)
+useEffect(() => {
+  if (!expanded || isDone) return
 
+  const autoComplete = async () => {
+    try {
+      if (lesson.type === 'PDF' || lesson.type === 'IMAGE') {
+        await progressApi.completeLesson(lesson.id)
+      }
+
+      if (lesson.type === 'TEXT') {
+        await progressApi.completeText(lesson.id)
+      }
+
+      queryClient.invalidateQueries(['my-progress'])
+    } catch (err) {
+      console.error('Auto complete failed', err)
+    }
+  }
+
+  autoComplete()
+}, [expanded])
   return (
     <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
       <div className="flex items-center gap-3 p-3">
@@ -112,23 +166,31 @@ function LessonViewRow({ lesson, progressEntry }) {
       </div>
 
       {/* ── Preview panel ── */}
+  
+
+
+
       {expanded && (
         <div className="border-t border-gray-100 p-3 bg-gray-50 space-y-2">
 
-          {lesson.type === 'TEXT' && (
-            <p className="text-sm text-gray-600 whitespace-pre-wrap">{lesson.content}</p>
-          )}
+      {lesson.type === 'TEXT' && (
+  <div>
+    <p className="text-sm text-gray-600 whitespace-pre-wrap">
+      {lesson.content}
+    </p>
+  </div>
+)}
 
-          {lesson.type === 'IMAGE' && lesson.content && (
+          {lesson.type === 'IMAGE' && lesson.fileUrl && (
             <div className="space-y-2">
               <img
-                src={lesson.content}
+                src={lesson.fileUrl}
                 alt={lesson.title}
                 className="max-h-56 rounded object-contain"
               />
               <div className="flex gap-3">
                 <a
-                  href={lesson.content}
+                  href={lesson.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
@@ -136,26 +198,27 @@ function LessonViewRow({ lesson, progressEntry }) {
                   <ExternalLink size={12} /> View Full Size
                 </a>
                 <button
-                  onClick={() => handleDownload(lesson.content, `${lesson.title.replace(/\s+/g, '_')}.jpg`)}
+                  onClick={() => handleDownload(lesson.fileUrl, `${lesson.title.replace(/\s+/g, '_')}.jpg`)}
                   className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
                 >
                   <Download size={12} /> Download Image
                 </button>
               </div>
+        
             </div>
           )}
 
-          {lesson.type === 'PDF' && lesson.content && (
+          {lesson.type === 'PDF' && lesson.fileUrl && (
             <div className="space-y-2">
               <iframe
-                src={lesson.content}
+                src={lesson.fileUrl}
                 title={lesson.title}
                 className="w-full rounded border border-gray-200"
                 style={{ height: '320px' }}
               />
               <div className="flex gap-3">
                 <a
-                  href={lesson.content}
+                  href={lesson.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
@@ -163,26 +226,28 @@ function LessonViewRow({ lesson, progressEntry }) {
                   <ExternalLink size={12} /> Open in Tab
                 </a>
                 <button
-                  onClick={() => handleDownload(lesson.content, `${lesson.title.replace(/\s+/g, '_')}.pdf`)}
+                  onClick={() => handleDownload(lesson.fileUrl, `${lesson.title.replace(/\s+/g, '_')}.pdf`)}
                   className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
                 >
                   <Download size={12} /> Download PDF
                 </button>
+              
               </div>
             </div>
           )}
 
-          {lesson.type === 'VIDEO' && lesson.videoUrl && (
+          {lesson.type === 'VIDEO' && lesson.fileUrl && (
             <div className="space-y-2">
-              {/cloudinary\.com/.test(lesson.videoUrl) ? (
+              {/cloudinary\.com/.test(lesson.fileUrl) ? (
                 <video
-                  src={lesson.videoUrl}
-                  controls
-                  className="w-full rounded border border-gray-200 max-h-64"
-                />
+  src={lesson.fileUrl}
+  controls
+  className="w-full rounded border border-gray-200 max-h-64"
+  onTimeUpdate={handleVideoProgress}
+/>
               ) : (
                 <a
-                  href={lesson.videoUrl}
+                  href={lesson.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
@@ -192,16 +257,16 @@ function LessonViewRow({ lesson, progressEntry }) {
               )}
               <div className="flex gap-3">
                 <a
-                  href={lesson.videoUrl}
+                  href={lesson.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                 >
                   <ExternalLink size={12} /> Open in Tab
                 </a>
-                {/cloudinary\.com/.test(lesson.videoUrl) && (
+                {/cloudinary\.com/.test(lesson.fileUrl) && (
                   <button
-                    onClick={() => handleDownload(lesson.videoUrl, `${lesson.title.replace(/\s+/g, '_')}.mp4`)}
+                    onClick={() => handleDownload(lesson.fileUrl, `${lesson.title.replace(/\s+/g, '_')}.mp4`)}
                     className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                   >
                     <Download size={12} /> Download Video
@@ -216,45 +281,21 @@ function LessonViewRow({ lesson, progressEntry }) {
   )
 }
 
-// ── Course lessons panel (lazy-loaded) ────────────────────
-function CourseLessonsPanel({ courseId, progressList }) {
-  const { data: modules = [], isLoading } = useQuery({
-    queryKey: ['modules-for-progress', courseId],
-    queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
-    enabled: !!courseId,
-  })
-
-  // Build lessonId → progress map
-  const progressMap = {}
-  progressList.forEach(p => {
-    if (p.lessonId) progressMap[p.lessonId] = p
-  })
-
-  if (isLoading)
-    return <p className="text-xs text-gray-400 py-2 pl-1">Loading lessons…</p>
-
-  if (modules.length === 0)
-    return <p className="text-xs text-gray-400 py-2 pl-1">No modules found.</p>
-
-  return (
-    <div className="space-y-4 mt-3">
-      {modules.map(mod => (
-        <ModuleLessonsSection
-          key={mod.id}
-          module={mod}
-          progressMap={progressMap}
-        />
-      ))}
-    </div>
-  )
-}
-
 // ── Per-module lesson section ─────────────────────────────
-function ModuleLessonsSection({ module, progressMap }) {
+// Returns { completedCount, totalCount } so the parent can tally course-level progress
+function ModuleLessonsSection({ module, progressMap, onCountsReady }) {
   const { data: lessons = [], isLoading } = useQuery({
     queryKey: ['lessons-progress', module.id],
     queryFn: () => lessonApi.getByModule(module.id).then(r => r.data),
     enabled: !!module.id,
+    // Report counts up to CourseLessonsPanel once loaded
+    onSuccess: (data) => {
+      const completed = data.filter(l => {
+        const p = progressMap[l.id]
+        return p?.completed || (p?.percentage ?? 0) >= 100
+      }).length
+      onCountsReady?.({ total: data.length, completed })
+    },
   })
 
   if (isLoading)
@@ -278,6 +319,157 @@ function ModuleLessonsSection({ module, progressMap }) {
   )
 }
 
+// ── Course lessons panel (lazy-loaded) ────────────────────
+// FIX: receives full progressMap (lessonId → progress) keyed globally,
+//      so lookup always works regardless of courseId grouping.
+function CourseLessonsPanel({ courseId, progressMap }) {
+  const { data: modules = [], isLoading } = useQuery({
+    queryKey: ['modules-for-progress', courseId],
+    queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
+    enabled: !!courseId,
+  })
+
+  if (isLoading)
+    return <p className="text-xs text-gray-400 py-2 pl-1">Loading lessons…</p>
+
+  if (modules.length === 0)
+    return <p className="text-xs text-gray-400 py-2 pl-1">No modules found.</p>
+
+  return (
+    <div className="space-y-4 mt-3">
+      {modules.map(mod => (
+        <ModuleLessonsSection
+          key={mod.id}
+          module={mod}
+          progressMap={progressMap}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ── Course-level progress summary (uses actual lesson data) ──
+// Calculates completed/total by fetching all modules+lessons for a course.
+// Falls back to progress-list counts while data loads.
+function useCourseProgress(courseId, progressMap) {
+  const { data: modules = [] } = useQuery({
+    queryKey: ['modules-for-progress', courseId],
+    queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
+    enabled: !!courseId,
+  })
+
+  // For each module fetch lessons (these are already cached from the panel)
+  const lessonQueries = modules.map(mod => ({
+    queryKey: ['lessons-progress', mod.id],
+  }))
+
+  // Flatten all known lessons from cache across modules
+  // We use a simple reduce: if modules are loaded, count their lesson totals
+  // (React Query caches these after CourseLessonsPanel opens)
+  const { data: allLessons = null } = useQuery({
+    queryKey: ['all-lessons-for-course', courseId],
+    queryFn: async () => {
+      const results = await Promise.all(
+        modules.map(mod => lessonApi.getByModule(mod.id).then(r => r.data))
+      )
+      return results.flat()
+    },
+    enabled: modules.length > 0,
+    staleTime: 0,
+refetchOnMount: true,
+refetchOnWindowFocus: true,
+refetchInterval: 10000,
+  })
+
+if (allLessons === null) {
+  return { completed: 0, total: 0, ready: false }
+}
+  const completed = allLessons.filter(l => {
+    const p = progressMap[l.id]
+    return p?.completed || (p?.percentage ?? 0) >= 100
+  }).length
+
+  return { completed, total: allLessons.length, ready: true }
+}
+
+// ── Course progress card ──────────────────────────────────
+function CourseProgressCard({ enrollment, progressMap, isOpen, onToggle }) {
+  const cid = enrollment.course?.id
+  const { completed, total, ready } = useCourseProgress(cid, progressMap)
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+
+  // Quick summary entries: lessons with any progress recorded
+  const trackedLessons = Object.values(progressMap)
+
+  return (
+    <div className="card">
+      {/* Course header */}
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 className="font-display font-semibold text-navy-800">{enrollment.course?.title}</h3>
+          <p className="text-xs text-slate-lms mt-0.5">{enrollment.course?.category}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {pct === 100 && ready && (
+            <span className="badge-green">
+              <CheckCircle2 size={12} /> Completed
+            </span>
+          )}
+          <button
+            onClick={onToggle}
+            className="flex items-center gap-1 text-xs text-royal-600 hover:text-royal-800 font-medium border border-royal-200 rounded-lg px-2.5 py-1.5 transition-colors"
+            title={isOpen ? 'Hide lessons' : 'View & Download lessons'}
+          >
+            <BookOpen size={12} />
+            {isOpen ? 'Hide' : 'View Lessons'}
+            {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+        </div>
+      </div>
+
+      <ProgressBar
+        value={pct}
+        label={total > 0 ? `${completed} of ${total} lessons done` : 'No lessons started yet'}
+      />
+
+      {/* Quick lesson summary (up to 5 tracked lessons) */}
+      {!isOpen && trackedLessons.length > 0 && (
+        <div className="mt-4 space-y-1.5">
+          {trackedLessons.slice(0, 5).map((p, i) => (
+            <div key={p.lessonId ?? i} className="flex items-center gap-2.5 text-xs text-navy-600">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${(p.completed || p.percentage >= 100) ? 'bg-emerald-100' : 'bg-royal-50'}`}>
+                {p.lessonType === 'VIDEO'
+                  ? <PlayCircle size={11} className={(p.completed || p.percentage >= 100) ? 'text-emerald-500' : 'text-royal-400'} />
+                  : <FileText size={11} className={(p.completed || p.percentage >= 100) ? 'text-emerald-500' : 'text-royal-400'} />
+                }
+              </div>
+              {/* FIX: use lessonTitle from DTO (was always undefined before) */}
+              <span className="flex-1 truncate">{p.lessonTitle || `Lesson ${i + 1}`}</span>
+              {p.percentage != null && p.percentage < 100 && !p.completed && (
+                <span className="text-royal-500 font-medium">{p.percentage}%</span>
+              )}
+              {(p.completed || (p.percentage ?? 0) >= 100) && (
+                <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />
+              )}
+            </div>
+          ))}
+          {trackedLessons.length > 5 && (
+            <p className="text-xs text-slate-lms pl-7">+{trackedLessons.length - 5} more lessons</p>
+          )}
+        </div>
+      )}
+
+      {/* Full lessons panel with view & download */}
+      {isOpen && cid && (
+        <CourseLessonsPanel
+          courseId={cid}
+          progressMap={progressMap}
+        />
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────
 export default function StudentProgressPage() {
   const [expandedCourseId, setExpandedCourseId] = useState(null)
@@ -296,16 +488,22 @@ export default function StudentProgressPage() {
 
   const approved = enrollments.filter(e => e.status === 'APPROVED')
 
-  // Group progress by courseId
-  const byCourse = {}
+  // FIX: Build a global lessonId → progress map (used for lesson row lookup)
+  const globalProgressMap = {}
   progressList.forEach(p => {
-    const cid = p.courseId || p.lesson?.module?.courseId
-    if (!cid) return
-    if (!byCourse[cid]) byCourse[cid] = []
-    byCourse[cid].push(p)
+    if (p.lessonId) globalProgressMap[p.lessonId] = p
   })
 
-  const totalCompleted = progressList.filter(p => p.completed || p.percentage >= 100).length
+  // FIX: Group progress by courseId (now reliably present in DTO)
+  const byCourse = {}
+  progressList.forEach(p => {
+    const cid = p.courseId  // populated by updated ProgressResponse DTO
+    if (!cid) return
+    if (!byCourse[cid]) byCourse[cid] = {}
+    byCourse[cid][p.lessonId] = p
+  })
+
+  const totalCompleted = progressList.filter(p => p.completed || (p.percentage ?? 0) >= 100).length
 
   const toggleCourse = (cid) =>
     setExpandedCourseId(prev => (prev === cid ? null : cid))
@@ -338,76 +536,18 @@ export default function StudentProgressPage() {
         <div className="space-y-4">
           {approved.map(e => {
             const cid = e.course?.id
-            const courseProgress = byCourse[cid] || []
-            const completed = courseProgress.filter(p => p.completed || p.percentage >= 100).length
-            const total     = courseProgress.length || 0
-            const pct       = total > 0 ? Math.round((completed / total) * 100) : 0
-            const isOpen    = expandedCourseId === cid
+            // Per-course progress map: lessonId → progress entry
+            const courseProgressMap = byCourse[cid] || {}
 
             return (
-              <div key={e.id} className="card">
-                {/* Course header */}
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div>
-                    <h3 className="font-display font-semibold text-navy-800">{e.course?.title}</h3>
-                    <p className="text-xs text-slate-lms mt-0.5">{e.course?.category}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {pct === 100 && (
-                      <span className="badge-green">
-                        <CheckCircle2 size={12} /> Completed
-                      </span>
-                    )}
-                    {/* Toggle lessons panel */}
-                    <button
-                      onClick={() => toggleCourse(cid)}
-                      className="flex items-center gap-1 text-xs text-royal-600 hover:text-royal-800 font-medium border border-royal-200 rounded-lg px-2.5 py-1.5 transition-colors"
-                      title={isOpen ? 'Hide lessons' : 'View & Download lessons'}
-                    >
-                      <BookOpen size={12} />
-                      {isOpen ? 'Hide' : 'View Lessons'}
-                      {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    </button>
-                  </div>
-                </div>
-
-                <ProgressBar value={pct} label={`${completed} of ${total} lessons done`} />
-
-                {/* Quick lesson summary (up to 5) */}
-                {!isOpen && courseProgress.length > 0 && (
-                  <div className="mt-4 space-y-1.5">
-                    {courseProgress.slice(0, 5).map((p, i) => (
-                      <div key={i} className="flex items-center gap-2.5 text-xs text-navy-600">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${(p.completed || p.percentage >= 100) ? 'bg-emerald-100' : 'bg-royal-50'}`}>
-                          {p.lessonType === 'VIDEO'
-                            ? <PlayCircle size={11} className={(p.completed || p.percentage >= 100) ? 'text-emerald-500' : 'text-royal-400'} />
-                            : <FileText size={11} className={(p.completed || p.percentage >= 100) ? 'text-emerald-500' : 'text-royal-400'} />
-                          }
-                        </div>
-                        <span className="flex-1 truncate">{p.lesson?.title || `Lesson ${i + 1}`}</span>
-                        {p.percentage != null && p.percentage < 100 && (
-                          <span className="text-royal-500 font-medium">{p.percentage}%</span>
-                        )}
-                        {(p.completed || p.percentage >= 100) && (
-                          <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    ))}
-                    {courseProgress.length > 5 && (
-                      <p className="text-xs text-slate-lms pl-7">+{courseProgress.length - 5} more lessons</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Full lessons panel with view & download */}
-                {isOpen && cid && (
-                  <CourseLessonsPanel
-                    courseId={cid}
-                    progressList={courseProgress}
-                  />
-                )}
-              </div>
-            )
+              <CourseProgressCard
+                key={e.id}
+                enrollment={e}
+                progressMap={courseProgressMap}
+                isOpen={expandedCourseId === cid}
+                onToggle={() => toggleCourse(cid)}
+              />
+            ) 
           })}
         </div>
       )}

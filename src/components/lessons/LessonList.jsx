@@ -476,6 +476,9 @@ export default function LessonList({ moduleId, editable = false }) {
       toast.success('Lesson created!')
       setAdding(false)
       qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
+qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
+qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
+qc.invalidateQueries({ queryKey: ['lessons-progress'] })
     } catch (err) {
       console.error(err)
       toast.error('Failed to create lesson')
@@ -498,7 +501,11 @@ export default function LessonList({ moduleId, editable = false }) {
       })
       toast.success('Lesson updated!')
       setEditingId(null)
-      qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
+     // 🔥 ADD THESE
+     qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
+qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
+qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
+qc.invalidateQueries({ queryKey: ['lessons-progress'] })
     } catch (err) {
       console.error(err)
       toast.error('Update failed')
@@ -514,6 +521,9 @@ export default function LessonList({ moduleId, editable = false }) {
       await lessonApi.delete(id)
       toast.success('Lesson deleted!')
       qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
+qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
+qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
+qc.invalidateQueries({ queryKey: ['lessons-progress'] })
     } catch (err) {
       console.error(err)
       toast.error('Delete failed')

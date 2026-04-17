@@ -115,7 +115,7 @@ export default function ModuleList({ courseId, editable = false }) {
     <div className="space-y-3">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h3 className="font-semibold text-navy-800">Course Modules</h3>
 
         {editable && (
@@ -132,7 +132,7 @@ export default function ModuleList({ courseId, editable = false }) {
       {editable && adding && (
         <form
           onSubmit={handleCreate}
-          className="flex gap-2 p-3 bg-royal-50 rounded-xl border"
+          className="flex flex-col sm:flex-row gap-2 p-3 bg-royal-50 rounded-xl border"
         >
           <input
             className="input flex-1 text-sm py-2"
@@ -172,8 +172,7 @@ export default function ModuleList({ courseId, editable = false }) {
         <div key={mod.id} className="card overflow-hidden">
 
           {/* MODULE HEADER */}
-          <div className="flex items-center gap-2 px-4 py-3 hover:bg-royal-50">
-
+     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 px-3 sm:px-4 py-3 hover:bg-royal-50">
             {/* expand */}
             <button onClick={() => toggle(mod.id)}>
               {expanded[mod.id]
@@ -189,14 +188,15 @@ export default function ModuleList({ courseId, editable = false }) {
 
             {/* title */}
             <div className="flex-1">
-              <p className="font-semibold text-sm">{mod.title}</p>
+          <p className="font-semibold text-sm truncate max-w-[140px] sm:max-w-none">
+  {mod.title}
+</p>
             </div>
 
             <Layers size={14} />
 
             {/* ACTIONS */}
-            {editable && (
-              <div className="flex gap-2">
+            {editable && (<div className="flex gap-2 ml-auto">
 
                 {/* EDIT */}
                 <button
@@ -218,7 +218,7 @@ export default function ModuleList({ courseId, editable = false }) {
 
           {/* EDIT FORM */}
           {editable && editingId === mod.id && (
-            <div className="p-3 border-t bg-royal-50 flex gap-2">
+          <div className="p-3 border-t bg-royal-50 flex flex-col sm:flex-row gap-2">
               <input
                 className="input flex-1 text-sm py-2"
                 value={editTitle}
@@ -246,7 +246,7 @@ export default function ModuleList({ courseId, editable = false }) {
 
           {/* LESSONS */}
           {expanded[mod.id] && (
-            <div className="border-t px-4 py-4 bg-surface">
+            <div className="border-t px-3 sm:px-4 py-4 bg-surface max-h-[50vh] overflow-y-auto">
               <LessonList moduleId={mod.id} editable={editable} />
             </div>
           )}

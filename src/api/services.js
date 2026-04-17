@@ -89,8 +89,15 @@ export const enrollmentApi = {
 export const progressApi = {
   updateVideo: (lessonId, percentage) =>
     api.post(`/progress/video/${lessonId}`, null, { params: { percentage } }),
-  completeText: (lessonId) => api.post(`/progress/text/${lessonId}/complete`),
-  myProgress:   ()         => api.get('/progress/my'),
+
+  completeText: (lessonId) =>
+    api.post(`/progress/text/${lessonId}/complete`),
+
+  // ✅ NEW → for PDF & IMAGE
+  completeLesson: (lessonId) =>
+    api.post(`/progress/complete/${lessonId}`),
+
+  myProgress: () => api.get('/progress/my'),
 }
 
 // ── File Upload ───────────────────────────────────────────
