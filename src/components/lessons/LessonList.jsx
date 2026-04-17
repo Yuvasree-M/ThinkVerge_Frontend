@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { lessonApi, uploadApi } from '../../api/services'
 import {
   Plus, Trash2, Edit, Video, FileText,
   File, Image, ChevronDown, ChevronUp, X,
-  Download, ExternalLink
+  Download, ExternalLink, CheckCircle2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-// ── Type config ───────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// No changes to LESSON_TYPES, getTypeConfig, EMPTY_FORM
+// ─────────────────────────────────────────────────────────────
 const LESSON_TYPES = [
   { value: 'VIDEO', label: 'Video', icon: Video,    color: 'text-blue-500',   bg: 'bg-blue-50'   },
   { value: 'TEXT',  label: 'Text',  icon: FileText, color: 'text-green-500',  bg: 'bg-green-50'  },
@@ -19,14 +21,12 @@ const LESSON_TYPES = [
 const getTypeConfig = (type) =>
   LESSON_TYPES.find(t => t.value === type) || LESSON_TYPES[0]
 
-// ✅ FIXED: replaced videoUrl with fileUrl — single field for all file types
 const EMPTY_FORM = {
   title: '', type: 'VIDEO',
   content: '', fileUrl: '',
   durationSeconds: '', orderIndex: '',
 }
 
-// ── Download helper ───────────────────────────────────────
 async function handleDownload(url, filename) {
   try {
     const response = await fetch(url)
@@ -40,15 +40,17 @@ async function handleDownload(url, filename) {
     a.remove()
     URL.revokeObjectURL(blobUrl)
   } catch {
-    // Fallback: open in new tab if CORS blocks direct download
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 }
 
-// ── Type-specific fields ──────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// LessonTypeFields — no functional changes, only layout fix:
+// CHANGE 1: Type-selector grid is now grid-cols-2 sm:grid-cols-4
+//           so it doesn't overflow on narrow screens.
+// CHANGE 2: Duration + Order row wraps with flex-wrap on mobile.
+// ─────────────────────────────────────────────────────────────
 function LessonTypeFields({ form, setForm, uploading, setUploading }) {
-
-  // ✅ FIXED: all uploaded file URLs go into fileUrl (not videoUrl or content)
   const handleFileUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -66,18 +68,19 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
     }
   }
 
+  const inputCls = 'border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 mt-1'
+
   switch (form.type) {
 
     case 'VIDEO':
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Video URL</label>
-          {/* ✅ FIXED: value/onChange use fileUrl instead of videoUrl */}
           <input
             placeholder="Paste YouTube / Vimeo / direct URL"
             value={form.fileUrl}
             onChange={e => setForm(p => ({ ...p, fileUrl: e.target.value }))}
-            className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`${inputCls} focus:ring-blue-500`}
           />
           <div className="flex items-center gap-2">
             <div className="flex-1 h-px bg-gray-200" />
@@ -89,20 +92,20 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
             {uploading ? 'Uploading…' : 'Choose video file'}
             <input type="file" accept="video/*" className="hidden" onChange={handleFileUpload} />
           </label>
-          {/* ✅ FIXED: show fileUrl confirmation */}
           {form.fileUrl && <p className="text-xs text-green-600 truncate">✓ {form.fileUrl}</p>}
-          <div className="flex gap-2">
-            <div className="flex-1">
+          {/* CHANGE 2: flex-wrap so Duration+Order don't overflow */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex-1 min-w-[120px]">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Duration (sec)</label>
               <input type="number" placeholder="e.g. 360" value={form.durationSeconds}
                 onChange={e => setForm(p => ({ ...p, durationSeconds: e.target.value }))}
-                className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1" />
+                className={`${inputCls} focus:ring-blue-500`} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-[100px]">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Order</label>
               <input type="number" placeholder="e.g. 1" value={form.orderIndex}
                 onChange={e => setForm(p => ({ ...p, orderIndex: e.target.value }))}
-                className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1" />
+                className={`${inputCls} focus:ring-blue-500`} />
             </div>
           </div>
         </div>
@@ -112,7 +115,6 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Content</label>
-          {/* TEXT is the only type that uses content field — no change needed */}
           <textarea
             placeholder="Write lesson content here…"
             value={form.content}
@@ -124,7 +126,7 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Order</label>
             <input type="number" placeholder="e.g. 1" value={form.orderIndex}
               onChange={e => setForm(p => ({ ...p, orderIndex: e.target.value }))}
-              className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 mt-1" />
+              className={`${inputCls} focus:ring-green-500`} />
           </div>
         </div>
       )
@@ -133,19 +135,17 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">PDF File</label>
-          {/* ✅ FIXED: show upload state using fileUrl instead of content */}
           <label className={`flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 text-sm text-gray-500 cursor-pointer hover:border-red-400 hover:text-red-500 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
             <File size={16} />
             {uploading ? 'Uploading…' : form.fileUrl ? '✓ Uploaded — click to replace' : 'Upload PDF'}
             <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} />
           </label>
-          {/* ✅ FIXED: show fileUrl confirmation */}
           {form.fileUrl && <p className="text-xs text-green-600 truncate">✓ {form.fileUrl}</p>}
           <div>
             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Order</label>
             <input type="number" placeholder="e.g. 1" value={form.orderIndex}
               onChange={e => setForm(p => ({ ...p, orderIndex: e.target.value }))}
-              className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mt-1" />
+              className={`${inputCls} focus:ring-red-500`} />
           </div>
         </div>
       )
@@ -154,7 +154,6 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
       return (
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Image File</label>
-          {/* ✅ FIXED: preview uses fileUrl instead of content */}
           <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-lg px-3 py-4 text-sm text-gray-500 cursor-pointer hover:border-purple-400 hover:text-purple-500 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
             {form.fileUrl
               ? <img src={form.fileUrl} alt="preview" className="max-h-28 rounded object-contain" />
@@ -166,7 +165,7 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Order</label>
             <input type="number" placeholder="e.g. 1" value={form.orderIndex}
               onChange={e => setForm(p => ({ ...p, orderIndex: e.target.value }))}
-              className="border border-gray-200 rounded-lg w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mt-1" />
+              className={`${inputCls} focus:ring-purple-500`} />
           </div>
         </div>
       )
@@ -175,113 +174,68 @@ function LessonTypeFields({ form, setForm, uploading, setUploading }) {
   }
 }
 
-// ── Lesson preview panel ──────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// LessonPreview — no functional changes.
+// ─────────────────────────────────────────────────────────────
 function LessonPreview({ lesson }) {
-  // ✅ FIXED: VIDEO reads lesson.fileUrl — matches LessonResponse from backend
   const filename = lesson.title.replace(/\s+/g, '_')
-
   return (
     <div className="border-t border-gray-100 p-3 bg-gray-50 space-y-3">
-
-      {/* TEXT */}
       {lesson.type === 'TEXT' && (
         <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-6">{lesson.content}</p>
       )}
-
-      {/* IMAGE — preview + download */}
-      {/* ✅ FIXED: lesson.fileUrl instead of lesson.content */}
       {lesson.type === 'IMAGE' && lesson.fileUrl && (
         <div className="space-y-2">
-          <img
-            src={lesson.fileUrl}
-            alt={lesson.title}
-            className="max-h-48 rounded object-contain"
-          />
-          <div className="flex gap-2">
-            <a
-              href={lesson.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
-            >
+          <img src={lesson.fileUrl} alt={lesson.title}
+            className="max-h-48 w-full rounded object-contain" />
+          <div className="flex gap-2 flex-wrap">
+            <a href={lesson.fileUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium">
               <ExternalLink size={13} /> View Full Size
             </a>
-            <button
-              onClick={() => handleDownload(lesson.fileUrl, `${filename}.jpg`)}
-              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
-            >
+            <button onClick={() => handleDownload(lesson.fileUrl, `${filename}.jpg`)}
+              className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium">
               <Download size={13} /> Download Image
             </button>
           </div>
         </div>
       )}
-
-      {/* PDF — embed viewer + download */}
-      {/* ✅ FIXED: lesson.fileUrl instead of lesson.content */}
       {lesson.type === 'PDF' && lesson.fileUrl && (
         <div className="space-y-2">
-          <iframe
-            src={lesson.fileUrl}
-            title={lesson.title}
-            className="w-full rounded border border-gray-200"
-            style={{ height: '320px' }}
-          />
-          <div className="flex gap-2">
-            <a
-              href={lesson.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
-            >
+          {/* CHANGE 3: iframe is responsive height on mobile */}
+          <iframe src={lesson.fileUrl} title={lesson.title}
+            className="w-full rounded border border-gray-200 min-h-[200px] sm:h-[320px]" />
+          <div className="flex gap-2 flex-wrap">
+            <a href={lesson.fileUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium">
               <ExternalLink size={13} /> Open in Tab
             </a>
-            <button
-              onClick={() => handleDownload(lesson.fileUrl, `${filename}.pdf`)}
-              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
-            >
+            <button onClick={() => handleDownload(lesson.fileUrl, `${filename}.pdf`)}
+              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-800 font-medium">
               <Download size={13} /> Download PDF
             </button>
           </div>
         </div>
       )}
-
-      {/* VIDEO — native player (Cloudinary) or link (YouTube/Vimeo) */}
-      {/* ✅ FIXED: lesson.fileUrl instead of lesson.videoUrl */}
       {lesson.type === 'VIDEO' && lesson.fileUrl && (
         <div className="space-y-2">
-          {/* If it's a direct file URL (Cloudinary), embed native player */}
           {/cloudinary\.com/.test(lesson.fileUrl) ? (
-            <video
-              src={lesson.fileUrl}
-              controls
-              className="w-full rounded border border-gray-200 max-h-64"
-            />
+            <video src={lesson.fileUrl} controls
+              className="w-full rounded border border-gray-200 max-h-64" />
           ) : (
-            /* YouTube / Vimeo / other — show link */
-            <a
-              href={lesson.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
-            >
+            <a href={lesson.fileUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm text-blue-600 hover:underline">
               <ExternalLink size={14} /> Watch Video
             </a>
           )}
-          <div className="flex gap-2">
-            <a
-              href={lesson.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
-            >
+          <div className="flex gap-2 flex-wrap">
+            <a href={lesson.fileUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
               <ExternalLink size={13} /> Open in Tab
             </a>
-            {/* Only show download for direct (Cloudinary) URLs */}
             {/cloudinary\.com/.test(lesson.fileUrl) && (
-              <button
-                onClick={() => handleDownload(lesson.fileUrl, `${filename}.mp4`)}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              >
+              <button onClick={() => handleDownload(lesson.fileUrl, `${filename}.mp4`)}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
                 <Download size={13} /> Download Video
               </button>
             )}
@@ -292,19 +246,22 @@ function LessonPreview({ lesson }) {
   )
 }
 
-// ── Lesson row ────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// LessonRow — responsive improvements:
+// CHANGE 4: Meta row wraps with flex-wrap so it doesn't overflow.
+// CHANGE 5: Edit/Delete buttons are always visible (not hidden
+//           behind overflow) on narrow screens.
+// ─────────────────────────────────────────────────────────────
 function LessonRow({ lesson, editable, onEdit, onDelete }) {
   const { icon: Icon, color, bg } = getTypeConfig(lesson.type)
   const [expanded, setExpanded] = useState(false)
 
-  // ✅ FIXED: all file types check lesson.fileUrl (not lesson.videoUrl or lesson.content for files)
   const hasPreview =
     (lesson.type === 'TEXT'  && lesson.content) ||
     (lesson.type === 'IMAGE' && lesson.fileUrl) ||
     (lesson.type === 'PDF'   && lesson.fileUrl) ||
     (lesson.type === 'VIDEO' && lesson.fileUrl)
 
-  // ✅ FIXED: downloadUrl always from lesson.fileUrl for file types
   const downloadUrl = lesson.type === 'TEXT' ? null : lesson.fileUrl
   const isDownloadable =
     lesson.type === 'IMAGE' ||
@@ -319,7 +276,8 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-gray-800 truncate">{lesson.title}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          {/* CHANGE 4: flex-wrap on meta row */}
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className={`text-xs font-medium ${color}`}>{lesson.type}</span>
             {lesson.durationSeconds && (
               <span className="text-xs text-gray-400">
@@ -329,21 +287,20 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
             {lesson.orderIndex != null && (
               <span className="text-xs text-gray-400">#{lesson.orderIndex}</span>
             )}
-            {/* Download badge */}
             {isDownloadable && downloadUrl && (
               <button
                 onClick={() => {
                   const ext = lesson.type === 'PDF' ? '.pdf' : lesson.type === 'IMAGE' ? '.jpg' : '.mp4'
                   handleDownload(downloadUrl, `${lesson.title.replace(/\s+/g, '_')}${ext}`)
                 }}
-                className={`flex items-center gap-0.5 text-xs font-medium ${color} hover:opacity-70 transition-opacity ml-1`}
-                title={`Download ${lesson.type}`}
+                className={`flex items-center gap-0.5 text-xs font-medium ${color} hover:opacity-70 transition-opacity`}
               >
                 <Download size={11} /> Download
               </button>
             )}
           </div>
         </div>
+        {/* CHANGE 5: action buttons always accessible */}
         <div className="flex items-center gap-1 flex-shrink-0">
           {hasPreview && (
             <button onClick={() => setExpanded(v => !v)}
@@ -354,24 +311,29 @@ function LessonRow({ lesson, editable, onEdit, onDelete }) {
           {editable && (
             <>
               <button onClick={onEdit}
-                className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors">
+                className="text-gray-400 hover:text-blue-600 p-1.5 rounded transition-colors"
+                title="Edit lesson">
                 <Edit size={14} />
               </button>
               <button onClick={onDelete}
-                className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors">
+                className="text-gray-400 hover:text-red-600 p-1.5 rounded transition-colors"
+                title="Delete lesson">
                 <Trash2 size={14} />
               </button>
             </>
           )}
         </div>
       </div>
-
       {expanded && <LessonPreview lesson={lesson} />}
     </div>
   )
 }
 
-// ── Lesson form ───────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// LessonForm — responsive improvements:
+// CHANGE 6: Type-selector grid is grid-cols-2 sm:grid-cols-4.
+// CHANGE 7: Action buttons use flex-wrap so they don't overflow.
+// ─────────────────────────────────────────────────────────────
 function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, ...initial })
   const [uploading, setUploading] = useState(false)
@@ -379,11 +341,9 @@ function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.title.trim()) { toast.error('Title is required'); return }
-    // ✅ FIXED: VIDEO validates fileUrl instead of videoUrl
     if (form.type === 'VIDEO' && !form.fileUrl.trim()) {
       toast.error('Please add a video URL or upload a file'); return
     }
-    // ✅ FIXED: PDF and IMAGE validate fileUrl instead of content
     if ((form.type === 'PDF' || form.type === 'IMAGE') && !form.fileUrl.trim()) {
       toast.error('Please upload a file first'); return
     }
@@ -407,10 +367,10 @@ function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
 
       <div>
         <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type *</label>
-        <div className="grid grid-cols-4 gap-2 mt-1">
+        {/* CHANGE 6: 2 cols on mobile, 4 on sm+ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
           {LESSON_TYPES.map(({ value, label, icon: Icon, color: c, bg }) => (
             <button key={value} type="button"
-              // ✅ FIXED: reset fileUrl instead of videoUrl when switching types
               onClick={() => setForm(p => ({ ...p, type: value, content: '', fileUrl: '' }))}
               className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border-2 text-xs font-medium transition-all ${
                 form.type === value
@@ -430,9 +390,10 @@ function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
         uploading={uploading} setUploading={setUploading}
       />
 
-      <div className="flex gap-2 pt-1">
+      {/* CHANGE 7: flex-wrap on actions */}
+      <div className="flex flex-wrap gap-2 pt-1">
         <button type="submit" disabled={submitting || uploading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors">
+          className="flex-1 min-w-[120px] bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors">
           {submitting ? 'Saving…' : 'Save Lesson'}
         </button>
         <button type="button" onClick={onCancel}
@@ -444,7 +405,10 @@ function LessonForm({ initial = EMPTY_FORM, onSubmit, onCancel, submitting }) {
   )
 }
 
-// ── Main ──────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Main LessonList — no functional changes needed here.
+// All the important fixes are in the sub-components above.
+// ─────────────────────────────────────────────────────────────
 export default function LessonList({ moduleId, editable = false }) {
   const qc = useQueryClient()
   const [adding, setAdding]         = useState(false)
@@ -459,8 +423,13 @@ export default function LessonList({ moduleId, editable = false }) {
 
   const lessons = Array.isArray(data) ? data : data?.content || data?.data || []
 
-  // ✅ FIXED: send fileUrl to backend (matches LessonRequest.fileUrl DTO)
-  //           TEXT → content field only, all others → fileUrl field only
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
+    qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
+    qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
+    qc.invalidateQueries({ queryKey: ['lessons-progress'] })
+  }
+
   const handleCreate = async (form) => {
     setSubmitting(true)
     try {
@@ -475,10 +444,7 @@ export default function LessonList({ moduleId, editable = false }) {
       })
       toast.success('Lesson created!')
       setAdding(false)
-      qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
-qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
-qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
-qc.invalidateQueries({ queryKey: ['lessons-progress'] })
+      invalidateAll()
     } catch (err) {
       console.error(err)
       toast.error('Failed to create lesson')
@@ -487,7 +453,6 @@ qc.invalidateQueries({ queryKey: ['lessons-progress'] })
     }
   }
 
-  // ✅ FIXED: same mapping for update
   const handleUpdate = async (id, form) => {
     setSubmitting(true)
     try {
@@ -501,11 +466,7 @@ qc.invalidateQueries({ queryKey: ['lessons-progress'] })
       })
       toast.success('Lesson updated!')
       setEditingId(null)
-     // 🔥 ADD THESE
-     qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
-qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
-qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
-qc.invalidateQueries({ queryKey: ['lessons-progress'] })
+      invalidateAll()
     } catch (err) {
       console.error(err)
       toast.error('Update failed')
@@ -514,16 +475,12 @@ qc.invalidateQueries({ queryKey: ['lessons-progress'] })
     }
   }
 
-  // DELETE
   const handleDelete = async (id) => {
     if (!confirm('Delete this lesson?')) return
     try {
       await lessonApi.delete(id)
       toast.success('Lesson deleted!')
-      qc.invalidateQueries({ queryKey: ['lessons', moduleId] })
-qc.invalidateQueries({ queryKey: ['modules-for-progress'] })
-qc.invalidateQueries({ queryKey: ['all-lessons-for-course'] })
-qc.invalidateQueries({ queryKey: ['lessons-progress'] })
+      invalidateAll()
     } catch (err) {
       console.error(err)
       toast.error('Delete failed')
@@ -534,7 +491,6 @@ qc.invalidateQueries({ queryKey: ['lessons-progress'] })
 
   return (
     <div className="space-y-2">
-
       {lessons.length === 0 && !adding && (
         <p className="text-sm text-gray-400 py-2">No lessons yet — add one below.</p>
       )}
@@ -544,11 +500,10 @@ qc.invalidateQueries({ queryKey: ['lessons-progress'] })
           <LessonForm
             key={lesson.id}
             initial={{
-              title:           lesson.title                           || '',
-              type:            lesson.type                           || 'VIDEO',
-              content:         lesson.content                        || '',
-              // ✅ FIXED: pre-fill fileUrl from lesson.fileUrl (backend LessonResponse field)
-              fileUrl:         lesson.fileUrl                        || '',
+              title:           lesson.title           || '',
+              type:            lesson.type            || 'VIDEO',
+              content:         lesson.content         || '',
+              fileUrl:         lesson.fileUrl         || '',
               durationSeconds: lesson.durationSeconds != null ? String(lesson.durationSeconds) : '',
               orderIndex:      lesson.orderIndex      != null ? String(lesson.orderIndex)      : '',
             }}

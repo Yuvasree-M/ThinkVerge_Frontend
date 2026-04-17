@@ -23,7 +23,7 @@ import InstructorEnrollmentsPage from "./pages/instructor/InstructorEnrollmentsP
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentBrowseCoursesPage from "./pages/student/StudentBrowseCoursesPage.jsx";
 import StudentEnrollmentsPage from "./pages/student/StudentEnrollmentsPage.jsx";
-import StudentProgressPage from "./pages/student/StudentProgressPage.jsx";
+// import StudentProgressPage from "./pages/student/StudentProgressPage.jsx";
 import StudentSubmissionsPage from "./pages/student/StudentSubmissionsPage.jsx";
 
 // Layout
@@ -141,10 +141,10 @@ export default function App() {
               element={<StudentEnrollmentsPage />} 
             />
 
-            <Route 
+            {/* <Route 
               path="/student/progress" 
               element={<StudentProgressPage />} 
-            />
+            /> */}
 
             <Route 
               path="/student/submissions" 

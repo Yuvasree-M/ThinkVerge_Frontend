@@ -28,7 +28,7 @@ const NAV = {
     { to: '/student', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/student/courses', label: 'Browse', icon: BookOpen },
     { to: '/student/enrollments', label: 'My Learning', icon: GraduationCap },
-    { to: '/student/progress', label: 'Progress', icon: BarChart2 },
+    // { to: '/student/progress', label: 'Progress', icon: BarChart2 },
     { to: '/student/submissions', label: 'Submissions', icon: FileText },
   ],
 }

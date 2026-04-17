@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { enrollmentApi, progressApi, submissionApi } from '../../api/services'
+import { enrollmentApi, progressApi, submissionApi, moduleApi, lessonApi } from '../../api/services'
 import StatCard from '../../components/common/StatCard'
 import ProgressBar from '../../components/common/ProgressBar'
 import { PageSpinner } from '../../components/common/Spinner'
@@ -22,13 +22,63 @@ export default function StudentDashboard() {
     queryKey: ['my-submissions'],
     queryFn: () => submissionApi.mySubmissions().then(r => r.data),
   })
+function CourseProgress({ courseId, progressMap }) {
+  const { data: modules = [] } = useQuery({
+    queryKey: ['modules', courseId],
+    queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
+    enabled: !!courseId,
+  })
 
+  const { data: lessons = [] } = useQuery({
+    queryKey: ['lessons', courseId],
+    queryFn: async () => {
+      const res = await Promise.all(
+        modules.map(m =>
+          lessonApi.getByModule(m.id).then(r => r.data)
+        )
+      )
+      return res.flat()
+    },
+    enabled: modules.length > 0,
+  })
+
+  let pct = 0
+
+  if (lessons.length > 0) {
+    const completed = lessons.filter(l => {
+      const p = progressMap[l.id]
+      return p?.completed || (p?.percentage ?? 0) >= 100
+    }).length
+
+    pct = Math.round((completed / lessons.length) * 100)
+  }
+
+  return (
+    <div>
+      {/* % TEXT */}
+      <div className="flex justify-end mb-1">
+        <span className="text-xs text-royal-600 font-semibold">
+          {pct}%
+        </span>
+      </div>
+
+      {/* BAR */}
+      <ProgressBar value={pct} showPercent={false} />
+    </div>
+  )
+}
+const progressMap = {}
+progress.forEach(p => {
+  progressMap[p.lessonId] = p
+})
   if (le || lp) return <PageSpinner />
 
   const approved   = enrollments.filter(e => e.status === 'APPROVED')
   const graded     = submissions.filter(s => s.grade != null)
   const avgGrade   = graded.length ? Math.round(graded.reduce((s, x) => s + x.grade, 0) / graded.length) : 0
-
+const completedLessons = progress.filter(
+  p => p.completed || (p.percentage ?? 0) >= 100
+).length
   return (
     <div className="space-y-8">
       {/* Welcome banner */}
@@ -45,7 +95,7 @@ export default function StudentDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Enrolled"    value={approved.length}    icon={BookOpen}  color="blue" />
-        <StatCard label="Lessons Done"value={progress.length}    icon={BarChart2} color="green" />
+        <StatCard label="Lessons Done"value={completedLessons}    icon={BarChart2} color="green" />
         <StatCard label="Submissions" value={submissions.length} icon={FileText}  color="gold" />
         <StatCard label="Avg. Grade"  value={avgGrade ? `${avgGrade}%` : '—'} icon={Trophy} color="purple" />
       </div>
@@ -58,18 +108,8 @@ export default function StudentDashboard() {
             <Link to="/student/enrollments" className="btn-ghost text-xs">View all →</Link>
           </div>
           <div className="space-y-4">
-           {approved.slice(0, 4).map(e => {
-  const courseProgress = progress.filter(
-    p => p.courseId === e.course?.id
-  )
-
-  const completedLessons = courseProgress.filter(
-    p => p.completed || (p.percentage ?? 0) >= 100
-  ).length
-
-  const pct = courseProgress.length > 0
-    ? Math.round((completedLessons / courseProgress.length) * 100)
-    : 0
+{approved.slice(0, 4).map(e => {
+  const courseId = e.course?.id
 
   return (
     <div key={e.id}>
@@ -77,11 +117,12 @@ export default function StudentDashboard() {
         <p className="text-sm font-medium text-navy-800 truncate flex-1 mr-2">
           {e.course?.title}
         </p>
-        <span className="text-xs text-royal-600 font-semibold flex-shrink-0">
-          {pct}%
-        </span>
       </div>
-      <ProgressBar value={pct} showPercent={false} />
+
+      <CourseProgress
+        courseId={courseId}
+        progressMap={progressMap}
+      />
     </div>
   )
 })}
