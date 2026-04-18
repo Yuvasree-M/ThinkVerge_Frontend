@@ -63,12 +63,13 @@ export const assignmentApi = {
 
 // ── Submissions ───────────────────────────────────────────
 export const submissionApi = {
-  submit: (data) => api.post('/submissions', data),
-  grade: (id, data) => api.put(`/submissions/${id}/grade`, data),
-  delete: (id) => api.delete(`/submissions/${id}`),
-  mySubmissions: () => api.get('/submissions/my'),
-  byAssignment: (assignmentId) => api.get(`/submissions/assignment/${assignmentId}`),
+  submit:        (data)         => api.post('/submissions', data),
+  grade:         (id, data)     => api.put(`/submissions/${id}/grade`, data),
+  delete:        (id)           => api.delete(`/submissions/${id}`),   // ✅ student delete (ungraded only)
+  mySubmissions: ()             => api.get('/submissions/my'),
+  byAssignment:  (assignmentId) => api.get(`/submissions/assignment/${assignmentId}`),
 }
+
 // ── Enrollments ───────────────────────────────────────────
 export const enrollmentApi = {
   request:       (courseId) => api.post(`/enrollments/${courseId}/request`),

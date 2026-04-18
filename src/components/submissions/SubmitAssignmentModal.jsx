@@ -1,14 +1,14 @@
 // components/submissions/SubmitAssignmentModal.jsx
-import { useState, useRef } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useState, useRef, useEffect } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { submissionApi, uploadApi } from '../../api/services'
-import { X, Upload, FileText, Loader2, Trash2, Download, Eye, ExternalLink } from 'lucide-react'
+import { X, Upload, FileText, Loader2, Trash2, Download, Eye, ExternalLink, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ✅ Use Google Docs viewer for Cloudinary PDF URLs so browser renders inline
 const pdfViewerUrl = (url) => {
   if (!url) return ''
-  if (url.startsWith('blob:')) return url   // local blob — render directly
+  if (url.startsWith('blob:')) return url
   return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
 }
 
@@ -19,13 +19,48 @@ export default function SubmitAssignmentModal({
   onSubmitted,
 }) {
   const fileInputRef = useRef()
-  const [tab, setTab] = useState('details')   // 'details' | 'submit'
+  const [tab, setTab] = useState('details')
 
   const [pdfFile,     setPdfFile]     = useState(null)
-  const [pdfPreview,  setPdfPreview]  = useState(null)  // blob or cloudinary URL
-  const [uploadedUrl, setUploadedUrl] = useState(null)  // final Cloudinary URL
+  const [pdfPreview,  setPdfPreview]  = useState(null)
+  const [uploadedUrl, setUploadedUrl] = useState(null)
   const [uploading,   setUploading]   = useState(false)
   const [content,     setContent]     = useState('')
+
+  // ✅ Fetch existing submission for this assignment (to pre-fill on resubmit)
+  const { data: mySubmissions = [] } = useQuery({
+    queryKey: ['my-submissions'],
+    // Already fetched by parent — uses cached data, no extra network call
+    queryFn: () => submissionApi.mySubmissions().then(r => r.data),
+    enabled: isOpen && !!assignment,
+  })
+
+  const existingSubmission = mySubmissions.find(s => s.assignmentId === assignment?.id)
+  const isResubmit = !!existingSubmission
+
+  // ✅ Pre-fill form when modal opens for resubmit
+  useEffect(() => {
+    if (!isOpen || !assignment) return
+    setTab('details')
+
+    if (existingSubmission) {
+      // Pre-fill with existing values so student sees their previous work
+      setContent(existingSubmission.content || '')
+      if (existingSubmission.fileUrl) {
+        setUploadedUrl(existingSubmission.fileUrl)
+        setPdfPreview(existingSubmission.fileUrl)
+      } else {
+        setUploadedUrl(null)
+        setPdfPreview(null)
+      }
+      setPdfFile(null)
+    } else {
+      setContent('')
+      setPdfFile(null)
+      setPdfPreview(null)
+      setUploadedUrl(null)
+    }
+  }, [isOpen, assignment?.id])
 
   const handleFilePick = async (e) => {
     const file = e.target.files[0]
@@ -37,13 +72,12 @@ export default function SubmitAssignmentModal({
 
     setPdfFile(file)
     const blobUrl = URL.createObjectURL(file)
-    setPdfPreview(blobUrl)   // show immediately
-    setUploadedUrl(null)     // not yet uploaded
+    setPdfPreview(blobUrl)
+    setUploadedUrl(null)
 
     setUploading(true)
     try {
       const res = await uploadApi.upload(file)
-      // handle both { url: '...' } object and plain string response
       const cloudUrl = typeof res.data === 'string' ? res.data : res.data.url
       setUploadedUrl(cloudUrl)
       setPdfPreview(cloudUrl)
@@ -73,7 +107,7 @@ export default function SubmitAssignmentModal({
         content:      content.trim() || null,
       }),
     onSuccess: () => {
-      toast.success('Submitted successfully!')
+      toast.success(isResubmit ? 'Resubmitted successfully!' : 'Submitted successfully!')
       onSubmitted?.()
       onClose()
     },
@@ -100,11 +134,22 @@ export default function SubmitAssignmentModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-royal-gradient flex items-center justify-center">
-              <FileText size={16} className="text-white" />
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isResubmit ? 'bg-amber-500' : 'bg-royal-gradient'}`}>
+              {isResubmit
+                ? <RefreshCw size={16} className="text-white" />
+                : <FileText  size={16} className="text-white" />
+              }
             </div>
             <div>
-              <h2 className="font-semibold text-navy-800 text-sm">{assignment.title}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-navy-800 text-sm">{assignment.title}</h2>
+                {/* ✅ Resubmit badge */}
+                {isResubmit && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                    Resubmitting
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3 mt-0.5">
                 {assignment.dueDate && (
                   <span className={`text-xs ${isDuePassed ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
@@ -127,7 +172,7 @@ export default function SubmitAssignmentModal({
         <div className="flex border-b border-slate-100 flex-shrink-0">
           {[
             { id: 'details', label: 'Assignment Details' },
-            { id: 'submit',  label: 'Your Answer'        },
+            { id: 'submit',  label: isResubmit ? 'Update Answer' : 'Your Answer' },
           ].map(t => (
             <button
               key={t.id}
@@ -150,7 +195,6 @@ export default function SubmitAssignmentModal({
           {tab === 'details' && (
             <div className="p-6 space-y-4">
 
-              {/* Instructions */}
               {assignment.description && (
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
@@ -162,14 +206,11 @@ export default function SubmitAssignmentModal({
                 </div>
               )}
 
-              {/* Assignment PDF from instructor */}
               {assignment.pdfUrl ? (
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                     Assignment PDF
                   </p>
-
-                  {/* Action buttons */}
                   <div className="flex items-center gap-2 mb-3">
                     <a
                       href={assignment.pdfUrl}
@@ -179,7 +220,6 @@ export default function SubmitAssignmentModal({
                     >
                       <Eye size={13} /> View Full Screen
                     </a>
-                    {/* ✅ download with .pdf filename so it downloads as PDF not as raw file */}
                     <a
                       href={assignment.pdfUrl}
                       download="assignment.pdf"
@@ -190,8 +230,6 @@ export default function SubmitAssignmentModal({
                       <Download size={13} /> Download PDF
                     </a>
                   </div>
-
-                  {/* ✅ Inline preview via Google Docs viewer */}
                   <div className="border border-royal-100 rounded-xl overflow-hidden">
                     <iframe
                       src={pdfViewerUrl(assignment.pdfUrl)}
@@ -210,15 +248,26 @@ export default function SubmitAssignmentModal({
 
               <div className="flex justify-end pt-2">
                 <button onClick={() => setTab('submit')} className="btn-primary text-sm">
-                  Submit My Answer →
+                  {isResubmit ? 'Update My Answer →' : 'Submit My Answer →'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── Submit Tab ── */}
+          {/* ── Submit / Resubmit Tab ── */}
           {tab === 'submit' && (
             <div className="p-6 space-y-4">
+
+              {/* ✅ Resubmit notice */}
+              {isResubmit && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm text-amber-700">
+                  <RefreshCw size={15} className="flex-shrink-0 mt-0.5" />
+                  <span>
+                    You already have a submission. Saving here will <strong>replace</strong> your
+                    previous answer. You can resubmit until the instructor grades it.
+                  </span>
+                </div>
+              )}
 
               {/* Overdue warning */}
               {isDuePassed && (
@@ -241,7 +290,9 @@ export default function SubmitAssignmentModal({
                     <div className="w-10 h-10 rounded-xl bg-royal-100 flex items-center justify-center">
                       <Upload size={18} className="text-royal-500" />
                     </div>
-                    <p className="text-sm text-navy-600 font-medium">Click to upload your answer PDF</p>
+                    <p className="text-sm text-navy-600 font-medium">
+                      {isResubmit ? 'Upload new answer PDF' : 'Click to upload your answer PDF'}
+                    </p>
                     <p className="text-xs text-slate-400">PDF files only</p>
                     <input
                       id="answer-pdf"
@@ -259,7 +310,7 @@ export default function SubmitAssignmentModal({
                       <div className="flex items-center gap-2">
                         <FileText size={14} className="text-royal-500" />
                         <span className="text-xs font-medium text-navy-700 truncate max-w-[180px]">
-                          {pdfFile?.name || 'answer.pdf'}
+                          {pdfFile?.name || (isResubmit ? 'Previous submission' : 'answer.pdf')}
                         </span>
                         {uploading && (
                           <span className="flex items-center gap-1 text-xs text-amber-600">
@@ -287,7 +338,6 @@ export default function SubmitAssignmentModal({
                       </div>
                     </div>
 
-                    {/* ✅ Preview — blob shown directly, cloudinary URL via Google Docs viewer */}
                     {uploading ? (
                       <div className="flex items-center justify-center h-36 bg-slate-50">
                         <Loader2 size={22} className="animate-spin text-royal-400" />
@@ -329,11 +379,13 @@ export default function SubmitAssignmentModal({
             <button
               onClick={handleSubmit}
               disabled={isPending || uploading}
-              className="btn-primary"
+              className={`btn-primary flex items-center gap-2 ${isResubmit ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
             >
               {isPending
-                ? <><Loader2 size={14} className="animate-spin" /> Submitting…</>
-                : 'Submit Assignment'
+                ? <><Loader2 size={14} className="animate-spin" /> {isResubmit ? 'Updating…' : 'Submitting…'}</>
+                : isResubmit
+                  ? <><RefreshCw size={14} /> Update Submission</>
+                  : 'Submit Assignment'
               }
             </button>
           </div>
