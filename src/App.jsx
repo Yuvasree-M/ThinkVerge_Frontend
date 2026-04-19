@@ -23,7 +23,7 @@
 // import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 // import StudentBrowseCoursesPage from "./pages/student/StudentBrowseCoursesPage.jsx";
 // import StudentEnrollmentsPage from "./pages/student/StudentEnrollmentsPage.jsx";
-// // import StudentProgressPage from "./pages/student/StudentProgressPage.jsx";
+// import StudentProgressPage from "./pages/student/StudentProgressPage.jsx";
 // import StudentSubmissionsPage from "./pages/student/StudentSubmissionsPage.jsx";
 // import CertificatePage from './pages/student/CertificatePage'
 // // Layout
@@ -141,6 +141,11 @@
 //               element={<StudentEnrollmentsPage />} 
 //             />
 
+//             <Route
+//               path="/student/progress"
+//               element={<StudentProgressPage />}
+//             />
+
 //             <Route 
 //               path="/student/certificates" 
 //               element={<CertificatePage />} 
@@ -167,7 +172,6 @@
 //   );
 // }
 
-
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth, AuthProvider } from "./contexts/AuthContext.jsx";
@@ -193,6 +197,7 @@ import InstructorEnrollmentsPage from "./pages/instructor/InstructorEnrollmentsP
 import StudentDashboard from "./pages/student/StudentDashboard.jsx";
 import StudentBrowseCoursesPage from "./pages/student/StudentBrowseCoursesPage.jsx";
 import StudentEnrollmentsPage from "./pages/student/StudentEnrollmentsPage.jsx";
+import CertificateViewPage from "./pages/CertificateViewPage.jsx";
 import StudentProgressPage from "./pages/student/StudentProgressPage.jsx";
 import StudentSubmissionsPage from "./pages/student/StudentSubmissionsPage.jsx";
 import CertificatePage from './pages/student/CertificatePage'
@@ -243,6 +248,9 @@ export default function App() {
 
           {/* Landing */}
           <Route path="/" element={<LandingPage />} />
+
+          {/* Public certificate view */}
+          <Route path="/certificate/:id" element={<CertificateViewPage />} />
 
           {/* Auth */}
           <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
