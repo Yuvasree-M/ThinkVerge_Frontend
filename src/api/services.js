@@ -96,6 +96,7 @@
 // // ── Certificates ──────────────────────────────────────────
 // export const certificateApi = {
 //   myCertificates: () => api.get('/certificates/my'),
+//   getById: (id)   => api.get(`/certificates/${id}`),
 // }
 
 // // ── Enrollments ───────────────────────────────────────────
@@ -127,7 +128,6 @@
 //     })
 //   },
 // }
-
 
 import api from './axios'
 
@@ -258,4 +258,10 @@ export const uploadApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+}
+
+// ── Public Landing ────────────────────────────────────────────
+export const publicApi = {
+  instructors:  () => api.get('/public/instructors'),
+  testimonials: () => api.get('/public/testimonials'),
 }
