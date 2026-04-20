@@ -57,6 +57,7 @@ export default function FinalQuizBuilder({ courseId, courseTitle }) {
     onSuccess: () => {
       toast.success('Final quiz saved!')
       qc.invalidateQueries({ queryKey: ['final-quiz-instructor', courseId] })
+      setOpen(false)
     },
     onError: () => toast.error('Failed to save final quiz'),
   })

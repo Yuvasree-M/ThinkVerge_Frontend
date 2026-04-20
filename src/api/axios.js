@@ -1,48 +1,14 @@
-// import axios from 'axios'
-
-// const api = axios.create({
-//   baseURL: import.meta.env.VITE_BASE_URL,
-//   headers: { 'Content-Type': 'application/json' },
-// });
-// // Attach JWT from localStorage
-// api.interceptors.request.use((config) => {
-//   const token = localStorage.getItem('token')
-//   if (token) config.headers.Authorization = `Bearer ${token}`
-//   return config
-// })
-
-// api.interceptors.response.use(
-//   (res) => res,
-//   (err) => {
-//     if (err.response?.status === 401) {
-//       localStorage.removeItem('token')
-//       localStorage.removeItem('user')
-//       window.location.href = '/login'
-//     }
-//     return Promise.reject(err)
-//   }
-// )
-
-// export default api
-
 import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,  // ✅ send HttpOnly cookie with every request
 })
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+// ✅ NO localStorage token injection — backend uses HttpOnly JWT cookie
+// Having two browsers inject the same localStorage token caused 403 for the second user
 
-  return config
-})
-// Optional: handle 401 globally
 api.interceptors.response.use(
   (res) => res,
   (err) => {

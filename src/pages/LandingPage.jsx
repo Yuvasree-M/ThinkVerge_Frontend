@@ -84,6 +84,7 @@ function Navbar({ scrolled }) {
     { label: 'How It Works', href: '#how' },
     { label: 'Instructors', href: '#instructors' },
     { label: 'Testimonials', href: '#testimonials' },
+    { label: 'Feedback',    href: '#feedback' },
     { label: 'FAQ',         href: '#faq' },
     { label: 'Contact',     href: '#contact' },
   ]
@@ -427,6 +428,10 @@ function Instructors() {
 // TESTIMONIALS — infinite horizontal scroll
 // ─────────────────────────────────────────────────────────────
 function TestimonialCard({ t, onClick }) {
+  const displayText = t.message
+    ? `"${t.message.length > 120 ? t.message.slice(0, 117) + '…' : t.message}"`
+    : `"Completed ${t.courseTitle || 'this course'} — an incredible learning journey that truly prepared me for real-world challenges."`
+
   return (
     <div onClick={() => onClick(t)} style={{ flexShrink:0, width:300, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(201,168,76,0.18)', borderRadius:20, padding:24, cursor:'pointer', transition:'all 0.25s', marginRight:20 }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = '#c9a84c'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.3)' }}
@@ -436,12 +441,14 @@ function TestimonialCard({ t, onClick }) {
         <Avatar name={t.studentName} image={t.profileImage} size={44} />
         <div>
           <p style={{ fontFamily:'DM Sans, sans-serif', fontSize:14, fontWeight:700, color:'white', margin:0 }}>{t.studentName}</p>
-          <p style={{ fontFamily:'DM Sans, sans-serif', fontSize:11, color:'rgba(255,255,255,0.45)', margin:'2px 0 0' }}>{t.issuedAt}</p>
+          <p style={{ fontFamily:'DM Sans, sans-serif', fontSize:11, color:'rgba(255,255,255,0.45)', margin:'2px 0 0' }}>
+            {t.courseTitle ? `${t.courseTitle}${t.issuedAt ? ' · ' + t.issuedAt : ''}` : t.issuedAt}
+          </p>
         </div>
       </div>
       <Stars score={t.averageScore || 100} size={13} />
       <p style={{ fontFamily:'DM Sans, sans-serif', fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.7, margin:'10px 0 14px', fontStyle:'italic' }}>
-        "Completed <strong style={{ color:'white', fontStyle:'normal' }}>{t.courseTitle}</strong> — an incredible learning journey that truly prepared me for real-world challenges."
+        {displayText}
       </p>
       <GradeBadge label={t.gradeLabel || 'Completed'} score={t.averageScore} />
     </div>
@@ -465,7 +472,10 @@ function TestimonialModal({ t, onClose }) {
         <div style={{ background:'rgba(201,168,76,0.08)', border:'1px solid rgba(201,168,76,0.2)', borderRadius:14, padding:'20px 22px', marginBottom:20 }}>
           <Stars score={t.averageScore || 100} size={16} />
           <p style={{ fontFamily:'DM Sans, sans-serif', fontSize:15, color:'rgba(255,255,255,0.8)', lineHeight:1.8, margin:'12px 0 0', fontStyle:'italic' }}>
-            "Completing <strong style={{ color:'#c9a84c', fontStyle:'normal' }}>{t.courseTitle}</strong> was a game-changer. The structured modules, challenging quizzes, and expert feedback from the instructor took my skills to a completely new level. I highly recommend ThinkVerge to anyone serious about learning."
+            {t.message
+              ? `"${t.message}"`
+              : `"Completing ${t.courseTitle} was a game-changer. The structured modules, challenging quizzes, and expert feedback from the instructor took my skills to a completely new level. I highly recommend ThinkVerge to anyone serious about learning."`
+            }
           </p>
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -543,6 +553,128 @@ function Testimonials() {
       </div>
 
       <TestimonialModal t={selected} onClose={() => setSelected(null)} />
+    </section>
+  )
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// FEEDBACK FORM (submits to testimonials)
+// ─────────────────────────────────────────────────────────────
+function FeedbackForm() {
+  const [form, setForm] = useState({ name: '', email: '', courseTitle: '', message: '', rating: 5 })
+  const [submitting, setSubmitting] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!form.name.trim() || !form.message.trim()) return
+    setSubmitting(true)
+    setError('')
+    try {
+      await publicApi.submitFeedback(form)
+      setSent(true)
+    } catch {
+      setError('Failed to submit feedback. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputStyle = {
+    width: '100%', background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+    padding: '12px 16px', fontFamily: 'DM Sans, sans-serif',
+    fontSize: 14, color: 'white', outline: 'none', boxSizing: 'border-box',
+    transition: 'border-color 0.2s'
+  }
+
+  return (
+    <section id="feedback" style={{ padding: '100px 24px', background: 'linear-gradient(135deg,#071020,#0f1f45)' }}>
+      <div style={{ maxWidth: 660, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <Label>Share Your Experience</Label>
+          <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 'clamp(26px,4vw,40px)', fontWeight: 700, color: 'white', margin: '16px 0 12px' }}>
+            Leave a Testimonial
+          </h2>
+          <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 16, color: 'rgba(255,255,255,0.5)', maxWidth: 440, margin: '0 auto' }}>
+            Completed a course? Share your experience and inspire others.
+          </p>
+        </div>
+
+        {sent ? (
+          <div style={{ textAlign: 'center', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 20, padding: '52px 40px' }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>🌟</div>
+            <p style={{ fontFamily: 'Playfair Display, serif', fontSize: 24, fontWeight: 700, color: 'white', margin: '0 0 8px' }}>Thank You!</p>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 15, color: 'rgba(255,255,255,0.55)' }}>
+              Your feedback has been submitted and will appear in testimonials after review.
+            </p>
+          </div>
+        ) : (
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(201,168,76,0.15)', borderRadius: 20, padding: '40px' }}>
+            {error && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: '#f87171' }}>
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
+                <div>
+                  <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 8 }}>Your Name *</label>
+                  <input required style={inputStyle} placeholder="John Doe" value={form.name}
+                    onChange={e => setForm(v => ({...v, name: e.target.value}))}
+                    onFocus={e => e.target.style.borderColor = 'rgba(201,168,76,0.5)'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'} />
+                </div>
+                <div>
+                  <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 8 }}>Email Address</label>
+                  <input type="email" style={inputStyle} placeholder="you@example.com" value={form.email}
+                    onChange={e => setForm(v => ({...v, email: e.target.value}))}
+                    onFocus={e => e.target.style.borderColor = 'rgba(201,168,76,0.5)'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 8 }}>Course You Completed</label>
+                <input style={inputStyle} placeholder="e.g. Java Fundamentals" value={form.courseTitle}
+                  onChange={e => setForm(v => ({...v, courseTitle: e.target.value}))}
+                  onFocus={e => e.target.style.borderColor = 'rgba(201,168,76,0.5)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'} />
+              </div>
+              <div>
+                <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 8 }}>Rating</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {[1,2,3,4,5].map(star => (
+                    <button key={star} type="button"
+                      onClick={() => setForm(v => ({...v, rating: star}))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, color: star <= form.rating ? '#f59e0b' : 'rgba(255,255,255,0.2)', transition: 'color 0.15s, transform 0.15s', padding: 0 }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                    >★</button>
+                  ))}
+                  <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.45)', marginLeft: 8 }}>
+                    {['','Poor','Fair','Good','Great','Excellent!'][form.rating]}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 8 }}>Your Feedback *</label>
+                <textarea required rows={4} placeholder="Tell others what you learned, how it helped you, what made this course great..." value={form.message}
+                  onChange={e => setForm(v => ({...v, message: e.target.value}))}
+                  onFocus={e => e.target.style.borderColor = 'rgba(201,168,76,0.5)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
+                  style={{...inputStyle, resize: 'vertical', minHeight: 100}} />
+              </div>
+              <button type="submit" disabled={submitting}
+                style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 15, color: '#0a1228', border: 'none', borderRadius: 12, padding: '14px', background: submitting ? 'rgba(201,168,76,0.5)' : 'linear-gradient(135deg,#c9a84c,#f59e0b)', cursor: submitting ? 'not-allowed' : 'pointer', transition: 'opacity 0.2s' }}
+              >
+                {submitting ? 'Submitting…' : 'Submit Feedback →'}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </section>
   )
 }
@@ -763,6 +895,7 @@ export default function LandingPage() {
       <HowItWorks />
       <Instructors />
       <Testimonials />
+      <FeedbackForm />
       <FAQ />
       <Contact />
       <Footer />

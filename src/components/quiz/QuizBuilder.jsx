@@ -60,6 +60,7 @@ export default function QuizBuilder({ moduleId, moduleTitle }) {
     onSuccess: () => {
       toast.success('Quiz saved!')
       qc.invalidateQueries({ queryKey: ['quiz-instructor', moduleId] })
+      setOpen(false)
     },
     onError: () => toast.error('Failed to save quiz'),
   })

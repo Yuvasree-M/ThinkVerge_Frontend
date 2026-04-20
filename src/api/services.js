@@ -145,6 +145,8 @@ export const userApi = {
   students:     ()          => api.get('/users/students'),
   updateLastSeen: ()        => api.put('/users/last-seen'),
   all:          ()          => api.get('/users'),
+  pending:      ()          => api.get('/users/pending'),
+  approveUser:  (id)        => api.put(`/users/${id}/approve`),
   changeRole:   (id, role)  => api.put(`/users/${id}/role?role=${role}`),
   deleteUser:   (id)        => api.delete(`/users/${id}`),
 }
@@ -260,8 +262,13 @@ export const uploadApi = {
   },
 }
 
-// ── Public Landing ────────────────────────────────────────────
+// ── Public Landing & Feedback ─────────────────────────────────
 export const publicApi = {
-  instructors:  () => api.get('/public/instructors'),
-  testimonials: () => api.get('/public/testimonials'),
+  instructors:        ()     => api.get('/public/instructors'),
+  testimonials:       ()     => api.get('/public/testimonials'),
+  submitFeedback:     (data) => api.post('/public/feedback', data),
+  pendingFeedback:    ()     => api.get('/public/feedback/pending'),
+  approveFeedback:    (id)   => api.put(`/public/feedback/${id}/approve`),
+  deleteFeedback:     (id)   => api.delete(`/public/feedback/${id}`),
 }
+
