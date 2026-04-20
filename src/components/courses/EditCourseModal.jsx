@@ -82,7 +82,7 @@ export default function EditCourseModal({ isOpen, onClose, onUpdated, course }) 
           <FormField label="Category" error={errors.category?.message} required>
             <Select {...register('category', { required: 'Category required' })} error={errors.category}>
               <option value="">Select category</option>
-              {['Web Development','Mobile Development','Data Science','Design','Business','Marketing','DevOps','AI / ML'].map(c => (
+              {['Programming Language','Web Development','Mobile Development','Data Science','Design','Business','Marketing','DevOps','AI / ML'].map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </Select>

@@ -7,7 +7,7 @@ import EmptyState from '../../components/common/EmptyState'
 import { BookOpen, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const CATEGORIES = ['All', 'Web Development', 'Mobile Development', 'Data Science', 'Design', 'Business', 'DevOps', 'AI / ML']
+const CATEGORIES = ['All', 'Programming Language', 'Web Development', 'Mobile Development', 'Data Science', 'Design', 'Business', 'DevOps', 'AI / ML']
 
 export default function StudentBrowseCoursesPage() {
   const qc = useQueryClient()
