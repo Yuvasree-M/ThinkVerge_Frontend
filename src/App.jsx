@@ -34,7 +34,7 @@ import LogoutConfirm from "./components/common/LogoutConfirm"
 // Errors
 import { NotFoundPage, UnauthorizedPage } from "./pages/ErrorPages.jsx";
 
-import Spinner from "./components/common/Spinner.jsx";
+import PageSpinner from "./components/common/Spinner.jsx";
 
 // ---------- Guards ----------
 
