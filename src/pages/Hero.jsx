@@ -4,6 +4,7 @@ import { T, css, SectionLabel, PageHeroBg } from './theme'
 export default function Hero() {
   return (
     <PageHeroBg
+      id="home"   // ✅ ADD THIS LINE
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -13,13 +14,13 @@ export default function Hero() {
         position: 'relative',
 
         /* 👇 your background image */
-        backgroundImage: "url('/hero.jpg')", // change path here
+        backgroundImage: "url('/hero.jpg')",
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
       }}
     >
-      {/* Dark overlay for readability */}
+      {/* Dark overlay */}
       <div
         style={{
           position: 'absolute',
@@ -118,6 +119,6 @@ export default function Hero() {
           </a>
         </div>
       </div>
-    </PageHeroBg>
+    </PageHeroBg >
   )
 }

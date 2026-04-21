@@ -155,51 +155,198 @@ export function FAQ() {
   )
 }
 
-/* ─── Contact ────────────────────────────────────────────────── */
 export function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
   const [sent, setSent] = useState(false)
+
   const inputStyle = {
-    width: '100%', background: T.grey1, border: `1.5px solid ${T.grey2}`, borderRadius: 10,
-    padding: '12px 15px', ...css.sans, fontSize: 14, color: T.text,
-    outline: 'none', boxSizing: 'border-box', transition: 'border-color .2s',
+    width: '100%',
+    background: T.grey1,
+    border: `1.5px solid ${T.grey2}`,
+    borderRadius: 10,
+    padding: '12px 15px',
+    ...css.sans,
+    fontSize: 14,
+    color: T.text,
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'all .2s'
   }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+
+    setSent(true)
+
+    // ✅ auto return to form after success
+    setTimeout(() => {
+      setForm({ name: '', email: '', message: '' })
+      setSent(false)
+    }, 2000)
+  }
+
   return (
-    <section id="contact" style={{ padding: '100px 24px', background: T.white }}>
-      <div style={{ maxWidth: 620, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 44 }}>
+    <section id="contact" style={{
+      padding: '100px 24px',
+      background: T.bg
+    }}>
+      <div style={{ maxWidth: 700, margin: '0 auto' }}>
+
+        {/* HEADER */}
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <SectionLabel>Get In Touch</SectionLabel>
-          <h2 style={{ ...css.serif, fontSize: 'clamp(26px,4vw,42px)', fontWeight: 700, color: T.navy, margin: '0 0 12px' }}>Contact Us</h2>
-          <p style={{ ...css.sans, fontSize: 16, color: T.grey4 }}>Have a question? We'd love to hear from you.</p>
+          <h2 style={{
+            ...css.serif,
+            fontSize: 'clamp(28px,4vw,42px)',
+            fontWeight: 700,
+            color: T.navy,
+            margin: '0 0 10px'
+          }}>
+            Contact Us
+          </h2>
+          <p style={{ ...css.sans, fontSize: 15, color: T.grey4 }}>
+            Have a question? We'd love to hear from you.
+          </p>
         </div>
-        {sent ? (
-          <div style={{ textAlign: 'center', background: 'rgba(27,107,74,0.07)', border: '1.5px solid rgba(27,107,74,0.22)', borderRadius: 16, padding: 40 }}>
-            <span style={{ fontSize: 46 }}>✅</span>
-            <p style={{ ...css.serif, fontSize: 22, fontWeight: 700, color: T.navy, margin: '16px 0 8px' }}>Message Sent!</p>
-            <p style={{ ...css.sans, fontSize: 15, color: T.text2 }}>We'll get back to you within 24 hours.</p>
-          </div>
-        ) : (
-          <form onSubmit={e => { e.preventDefault(); setSent(true) }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
-              {[{ k: 'name', l: 'Your Name', t: 'text', p: 'Jane Doe' }, { k: 'email', l: 'Email Address', t: 'email', p: 'jane@example.com' }].map(f => (
-                <div key={f.k}>
-                  <label style={{ ...css.sans, fontSize: 11, fontWeight: 600, color: T.grey4, textTransform: 'uppercase', letterSpacing: '0.09em', display: 'block', marginBottom: 7 }}>{f.l}</label>
-                  <input type={f.t} placeholder={f.p} required value={form[f.k]} onChange={e => setForm(v => ({ ...v, [f.k]: e.target.value }))}
-                    style={inputStyle} onFocus={e => e.target.style.borderColor = T.gold} onBlur={e => e.target.style.borderColor = T.grey2} />
-                </div>
-              ))}
+
+        {/* CARD */}
+        <div style={{
+          background: T.white,
+          border: `1px solid ${T.grey2}`,
+          borderRadius: 20,
+          padding: '36px 32px',
+          boxShadow: '0 25px 60px rgba(13,27,42,0.12)'
+        }}>
+
+          {sent ? (
+            /* SUCCESS */
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: 70,
+                height: 70,
+                borderRadius: '50%',
+                margin: '0 auto 16px',
+                background: 'rgba(27,107,74,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 30
+              }}>
+                ✅
+              </div>
+
+              <h3 style={{
+                ...css.serif,
+                fontSize: 22,
+                fontWeight: 700,
+                color: T.navy,
+                marginBottom: 8
+              }}>
+                Message Sent!
+              </h3>
+
+              <p style={{
+                ...css.sans,
+                fontSize: 14,
+                color: T.grey4
+              }}>
+                We'll get back to you within 24 hours.
+              </p>
             </div>
-            <div>
-              <label style={{ ...css.sans, fontSize: 11, fontWeight: 600, color: T.grey4, textTransform: 'uppercase', letterSpacing: '0.09em', display: 'block', marginBottom: 7 }}>Message</label>
-              <textarea rows={5} placeholder="Tell us how we can help..." required value={form.message} onChange={e => setForm(v => ({ ...v, message: e.target.value }))}
-                style={{ ...inputStyle, resize: 'vertical' }} onFocus={e => e.target.style.borderColor = T.gold} onBlur={e => e.target.style.borderColor = T.grey2} />
-            </div>
-            <button type="submit" style={{ ...css.sans, fontWeight: 600, fontSize: 15, color: T.white, border: 'none', borderRadius: 11, padding: '14px', background: `linear-gradient(135deg,${T.navy},${T.navyMid})`, cursor: 'pointer', marginTop: 4, transition: 'opacity .2s' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-              Send Message →
-            </button>
-          </form>
-        )}
+
+          ) : (
+            /* FORM */
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* NAME + EMAIL */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
+                gap: 16
+              }}>
+                {[
+                  { k: 'name', l: 'Your Name', t: 'text', p: 'Jane Doe' },
+                  { k: 'email', l: 'Email Address', t: 'email', p: 'jane@example.com' }
+                ].map(f => (
+                  <div key={f.k}>
+                    <label style={{
+                      ...css.sans,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: T.grey4,
+                      textTransform: 'uppercase',
+                      marginBottom: 6,
+                      display: 'block'
+                    }}>
+                      {f.l}
+                    </label>
+
+                    <input
+                      type={f.t}
+                      placeholder={f.p}
+                      required
+                      value={form[f.k]}
+                      onChange={e => setForm(v => ({ ...v, [f.k]: e.target.value }))}
+                      style={inputStyle}
+                      onFocus={e => e.target.style.borderColor = T.gold}
+                      onBlur={e => e.target.style.borderColor = T.grey2}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* MESSAGE */}
+              <div>
+                <label style={{
+                  ...css.sans,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: T.grey4,
+                  textTransform: 'uppercase',
+                  marginBottom: 6,
+                  display: 'block'
+                }}>
+                  Message
+                </label>
+
+                <textarea
+                  rows={5}
+                  placeholder="Tell us how we can help..."
+                  required
+                  value={form.message}
+                  onChange={e => setForm(v => ({ ...v, message: e.target.value }))}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                  onFocus={e => e.target.style.borderColor = T.gold}
+                  onBlur={e => e.target.style.borderColor = T.grey2}
+                />
+              </div>
+
+              {/* SUBMIT */}
+              <button
+                type="submit"
+                style={{
+                  ...css.sans,
+                  fontWeight: 600,
+                  fontSize: 15,
+                  color: T.white,
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '14px',
+                  background: `linear-gradient(135deg,${T.navy},${T.navyMid})`,
+                  cursor: 'pointer',
+                  marginTop: 6,
+                  transition: 'opacity .2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                Send Message →
+              </button>
+
+            </form>
+          )}
+
+        </div>
       </div>
     </section>
   )
@@ -207,47 +354,184 @@ export function Contact() {
 
 /* ─── Footer ─────────────────────────────────────────────────── */
 export function Footer() {
-  const scrollTo = href => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
-  const navItems = [['Home', '#home'], ['About', '#about'], ['How It Works', '#how'], ['Instructors', '#instructors'], ['Testimonials', '#testimonials']]
+  const scrollTo = href =>
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+
+  const navItems = [
+    ['Home', '#home'],
+    ['About', '#about'],
+    ['How It Works', '#how'],
+    ['Instructors', '#instructors'],
+    ['Testimonials', '#testimonials']
+  ]
+
   return (
-    <footer style={{ background: T.navy, borderTop: '1px solid rgba(255,255,255,0.08)', padding: '60px 24px 26px' }}>
+    <footer style={{
+      background: T.navy,
+      borderTop: '1px solid rgba(255,255,255,0.08)',
+      padding: '60px 24px 26px'
+    }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 40, marginBottom: 48 }}>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
+          gap: 40,
+          marginBottom: 48
+        }}>
+
+          {/* ✅ LOGO CHANGED TO IMAGE */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg,${T.gold},${T.goldL})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🎓</div>
-              <span style={{ ...css.serif, fontWeight: 700, fontSize: 17, color: T.white }}>ThinkVerge</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginBottom: 14
+            }}>
+              <img
+                src="/logo.png"
+                alt="ThinkVerge"
+                style={{
+                  height: 32,
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
             </div>
-            <p style={{ ...css.sans, fontSize: 13, color: 'rgba(255,255,255,0.38)', lineHeight: 1.75 }}>Premium online learning platform connecting passionate learners with expert instructors.</p>
+
+            <p style={{
+              ...css.sans,
+              fontSize: 13,
+              color: 'rgba(255,255,255,0.38)',
+              lineHeight: 1.75
+            }}>
+              Premium online learning platform connecting passionate learners with expert instructors.
+            </p>
           </div>
+
+          {/* PLATFORM */}
           <div>
-            <p style={{ ...css.sans, fontSize: 10, fontWeight: 700, color: T.gold, textTransform: 'uppercase', letterSpacing: '0.14em', margin: '0 0 16px' }}>Platform</p>
+            <p style={{
+              ...css.sans,
+              fontSize: 10,
+              fontWeight: 700,
+              color: T.gold,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              margin: '0 0 16px'
+            }}>
+              Platform
+            </p>
+
             {navItems.map(([label, href]) => (
-              <a key={href} href={href} onClick={e => { e.preventDefault(); scrollTo(href) }}
-                style={{ ...css.sans, display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.42)', textDecoration: 'none', padding: '5px 0', transition: 'color .2s' }}
-                onMouseEnter={e => e.target.style.color = T.goldL} onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.42)'}>
+              <a
+                key={href}
+                href={href}
+                onClick={e => {
+                  e.preventDefault()
+                  scrollTo(href)
+                }}
+                style={{
+                  ...css.sans,
+                  display: 'block',
+                  fontSize: 13,
+                  color: 'rgba(255,255,255,0.42)',
+                  textDecoration: 'none',
+                  padding: '5px 0',
+                  transition: 'color .2s'
+                }}
+                onMouseEnter={e => (e.target.style.color = T.goldL)}
+                onMouseLeave={e =>
+                  (e.target.style.color = 'rgba(255,255,255,0.42)')
+                }
+              >
                 {label}
               </a>
             ))}
           </div>
+
+          {/* SUPPORT */}
           <div>
-            <p style={{ ...css.sans, fontSize: 10, fontWeight: 700, color: T.gold, textTransform: 'uppercase', letterSpacing: '0.14em', margin: '0 0 16px' }}>Support</p>
+            <p style={{
+              ...css.sans,
+              fontSize: 10,
+              fontWeight: 700,
+              color: T.gold,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              margin: '0 0 16px'
+            }}>
+              Support
+            </p>
+
             {['FAQ', 'Contact Us', 'Privacy Policy', 'Terms of Service'].map(l => (
-              <a key={l} href="#contact" onClick={e => { e.preventDefault(); scrollTo('#contact') }}
-                style={{ ...css.sans, display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.42)', textDecoration: 'none', padding: '5px 0', transition: 'color .2s' }}
-                onMouseEnter={e => e.target.style.color = T.goldL} onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.42)'}>
+              <a
+                key={l}
+                href="#contact"
+                onClick={e => {
+                  e.preventDefault()
+                  scrollTo('#contact')
+                }}
+                style={{
+                  ...css.sans,
+                  display: 'block',
+                  fontSize: 13,
+                  color: 'rgba(255,255,255,0.42)',
+                  textDecoration: 'none',
+                  padding: '5px 0',
+                  transition: 'color .2s'
+                }}
+                onMouseEnter={e => (e.target.style.color = T.goldL)}
+                onMouseLeave={e =>
+                  (e.target.style.color = 'rgba(255,255,255,0.42)')
+                }
+              >
                 {l}
               </a>
             ))}
           </div>
         </div>
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 22, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ ...css.sans, fontSize: 12, color: 'rgba(255,255,255,0.25)', margin: 0 }}>© 2026 ThinkVerge LMS. All rights reserved.</p>
+
+        {/* BOTTOM BAR */}
+        <div style={{
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          paddingTop: 22,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 12,
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <p style={{
+            ...css.sans,
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.25)',
+            margin: 0
+          }}>
+            © 2026 ThinkVerge LMS. All rights reserved.
+          </p>
+
           <div style={{ display: 'flex', gap: 16 }}>
-            <Link to="/login"    style={{ ...css.sans, fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Login</Link>
-            <Link to="/register" style={{ ...css.sans, fontSize: 12, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>Register</Link>
+            <Link to="/login" style={{
+              ...css.sans,
+              fontSize: 12,
+              color: 'rgba(255,255,255,0.35)',
+              textDecoration: 'none'
+            }}>
+              Login
+            </Link>
+
+            <Link to="/register" style={{
+              ...css.sans,
+              fontSize: 12,
+              color: 'rgba(255,255,255,0.35)',
+              textDecoration: 'none'
+            }}>
+              Register
+            </Link>
           </div>
         </div>
+
       </div>
     </footer>
   )

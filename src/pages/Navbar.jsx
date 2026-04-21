@@ -1,178 +1,297 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { T, css, UserIcon } from './theme'
 
 const NAV_LINKS = [
-  { label: 'Home',         href: '#home' },
-  { label: 'About',        href: '#about' },
+  { label: 'Home', href: '#home' },
+  { label: 'About', href: '#about' },
   { label: 'How It Works', href: '#how' },
-  { label: 'Instructors',  href: '#instructors' },
+  { label: 'Instructors', href: '#instructors' },
   { label: 'Testimonials', href: '#testimonials' },
-  { label: 'FAQ',          href: '#faq' },
-  { label: 'Contact',      href: '#contact' },
+  { label: 'FAQ', href: '#faq' },
+  { label: 'Contact', href: '#contact' },
 ]
 
-function scrollTo(href) {
-  document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
+/* ✅ SCROLL WITH OFFSET */
+function scrollToSection(href) {
+  if (href === '#home') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+
+  const el = document.querySelector(href)
+  if (!el) return
+
+  const yOffset = -80
+  const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset
+
+  window.scrollTo({ top: y, behavior: 'smooth' })
 }
 
+/* ---------------- USER DROPDOWN ---------------- */
 function UserDropdown({ onClose }) {
-  const dropPanel = {
-    position: 'absolute', top: 48, right: 0,
-    background: T.white, border: `1.5px solid ${T.border}`,
-    borderRadius: 16, padding: 8, minWidth: 188,
-    boxShadow: '0 12px 40px rgba(13,27,42,0.14)', zIndex: 200,
-  }
-  const itemStyle = {
-    ...css.sans, display: 'flex', alignItems: 'center', gap: 10,
-    fontSize: 14, fontWeight: 500, color: T.text,
-    textDecoration: 'none', padding: '10px 14px', borderRadius: 10,
-    transition: 'background .15s',
-  }
   return (
-    <div className="tv-dropin" style={dropPanel}>
-      <div style={{ padding: '12px 14px 10px', borderBottom: `1px solid ${T.grey2}`, marginBottom: 6 }}>
-        <p style={{ ...css.sans, fontSize: 11, fontWeight: 700, color: T.grey4, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Account</p>
-      </div>
-      <Link to="/login" onClick={onClose} className="tv-drop-item" style={itemStyle}>
-        <span style={{ width: 30, height: 30, borderRadius: 8, background: T.grey1, border: `1px solid ${T.grey2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <UserIcon color={T.navy} size={14} />
-        </span>
-        <div>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.navy }}>Login</p>
-          <p style={{ margin: 0, fontSize: 11, color: T.grey4 }}>Access your account</p>
-        </div>
+    <div style={{
+      position: 'absolute',
+      top: 48,
+      right: 0,
+      background: T.white,
+      border: `1px solid ${T.border}`,
+      borderRadius: 14,
+      padding: 8,
+      minWidth: 200,
+      boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+      zIndex: 200,
+    }}>
+      <Link to="/login" onClick={onClose} style={dropItem}>
+        <UserIcon size={16} color={T.navy} />
+        Login
       </Link>
-      <div style={{ height: 1, background: T.grey2, margin: '4px 8px' }} />
-      <Link to="/register" onClick={onClose} className="tv-drop-item" style={itemStyle}>
-        <span style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg,${T.gold},${T.goldL})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-        </span>
-        <div>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: T.navy }}>Get Started</p>
-          <p style={{ margin: 0, fontSize: 11, color: T.grey4 }}>Create a new account</p>
-        </div>
+
+      <Link to="/register" onClick={onClose} style={dropItem}>
+        <div style={goldIcon}>+</div>
+        Register
       </Link>
     </div>
   )
 }
 
+const dropItem = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  padding: '10px 12px',
+  borderRadius: 10,
+  textDecoration: 'none',
+  color: '#0D1B2A',
+  fontSize: 13,
+  fontWeight: 500,
+}
+
+const goldIcon = {
+  width: 22,
+  height: 22,
+  borderRadius: 6,
+  background: 'linear-gradient(135deg,#B8963E,#E5C76B)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#fff',
+  fontWeight: 700
+}
+
+/* ---------------- NAVBAR ---------------- */
 export default function Navbar({ scrolled }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [deskUserOpen, setDeskUserOpen] = useState(false)
-  const [mobUserOpen, setMobUserOpen] = useState(false)
-  const deskRef = useRef(null)
-  const mobRef = useRef(null)
+  const [userOpen, setUserOpen] = useState(false)
+  const [active, setActive] = useState('#home')
 
+  const userRef = useRef(null)
+  const navigate = useNavigate() // ✅ FIXED
+
+  /* close dropdown */
   useEffect(() => {
-    const h = e => {
-      if (deskRef.current && !deskRef.current.contains(e.target)) setDeskUserOpen(false)
-      if (mobRef.current && !mobRef.current.contains(e.target)) setMobUserOpen(false)
+    const h = (e) => {
+      if (userRef.current && !userRef.current.contains(e.target)) {
+        setUserOpen(false)
+      }
     }
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  const navBg      = scrolled ? 'rgba(244,246,248,0.97)' : 'transparent'
-  const navBorder  = scrolled ? `1px solid ${T.border}` : 'none'
-  const navShadow  = scrolled ? '0 2px 20px rgba(13,27,42,0.08)' : 'none'
-  const logoColor  = scrolled ? T.navy : T.white
-  const linkColor  = scrolled ? T.text2 : 'rgba(255,255,255,0.80)'
-  const iconStroke = scrolled ? T.navy : '#fff'
-  const iconBg     = scrolled ? T.grey2 : 'rgba(255,255,255,0.15)'
-  const iconBorder = scrolled ? T.border : 'rgba(255,255,255,0.25)'
+  /* scroll spy */
+  useEffect(() => {
+    const onScroll = () => {
+      let current = '#home'
+      NAV_LINKS.forEach(link => {
+        const el = document.querySelector(link.href)
+        if (el && el.getBoundingClientRect().top < 120) {
+          current = link.href
+        }
+      })
+      setActive(current)
+    }
 
-  const iconBtn = (active, onClick, ref, size = 38) => ({
-    ref, onClick,
-    style: {
-      width: size, height: size, borderRadius: '50%',
-      background: active ? (scrolled ? 'rgba(184,150,62,0.12)' : 'rgba(255,255,255,0.22)') : iconBg,
-      border: `1.5px solid ${active ? T.gold : iconBorder}`,
-      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: 'all .2s', padding: 0, outline: 'none',
-    },
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const linkStyle = (href) => ({
+    ...css.sans,
+    fontSize: 13,
+    fontWeight: 500,
+    padding: '6px 10px',
+    borderRadius: 8,
+    textDecoration: 'none',
+    transition: '0.2s',
+    color: active === href
+      ? T.gold
+      : scrolled ? T.text : '#fff',
+    borderBottom: active === href ? `2px solid ${T.gold}` : '2px solid transparent'
   })
 
   return (
     <>
       <style>{`
-        @media(max-width:900px){.tv-desk{display:none!important}.tv-mob{display:flex!important}}
-        .tv-navlink:hover{color:${T.gold}!important}
-        .tv-user-btn:hover{background:rgba(184,150,62,0.10)!important}
-        .tv-drop-item:hover{background:${T.grey1}!important}
-        @keyframes tvBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
-        @keyframes menuSlide{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
-        .tv-mob-open{animation:menuSlide .22s ease both}
-        .tv-ham-line{display:block;width:20px;height:1.5px;border-radius:2px;transition:all .3s}
-        @keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-        .tv-dropin{animation:dropIn .18s ease both}
-        @keyframes tvFadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-        .tv-fadein{animation:tvFadeUp .6s ease both}
+        .tv-link:hover { color:#B8963E!important }
+        .tv-mobile-link:hover {
+          background: rgba(184,150,62,0.08);
+          color:#B8963E;
+        }
+        @media(max-width:900px){
+          .tv-desk{display:none!important}
+          .tv-mob{display:flex!important}
+        }
       `}</style>
+
       <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        transition: 'all 0.3s ease', background: navBg,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        background: scrolled ? 'rgba(255,255,255,0.95)' : 'transparent',
         backdropFilter: scrolled ? 'blur(14px)' : 'none',
-        borderBottom: navBorder, boxShadow: navShadow,
+        borderBottom: scrolled ? '1px solid rgba(0,0,0,0.06)' : 'none',
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', height: 66, padding: '0 24px', gap: 8 }}>
-          {/* Logo */}
-          <a href="#home" onClick={e => { e.preventDefault(); scrollTo('#home') }}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', marginRight: 'auto' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: `linear-gradient(135deg,${T.gold},${T.goldL})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎓</div>
-            <span style={{ ...css.serif, fontWeight: 700, fontSize: 20, color: logoColor, letterSpacing: '0.02em', transition: 'color .3s' }}>ThinkVerge</span>
+
+        <div style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          height: 70,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 20px'
+        }}>
+
+          {/* LOGO */}
+          <a
+            href="#home"
+            onClick={(e) => {
+              e.preventDefault()
+
+              if (window.location.pathname !== '/') {
+                navigate('/')
+                setTimeout(() => scrollToSection('#home'), 150)
+              } else {
+                scrollToSection('#home')
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginRight: 'auto',
+              textDecoration: 'none'
+            }}
+          >
+            <img src="/logo.png" style={{ height: 40 }} />
+
+            <span style={{
+              ...css.serif,
+              fontSize: 20,
+              fontWeight: 700,
+              color: scrolled ? T.navy : '#fff'
+            }}>
+              ThinkVerge
+            </span>
           </a>
 
-          {/* Desktop links */}
-          <div className="tv-desk" style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+          {/* DESKTOP LINKS */}
+          <div className="tv-desk" style={{ display: 'flex', gap: 6 }}>
             {NAV_LINKS.map(l => (
-              <a key={l.label} href={l.href} className="tv-navlink"
-                onClick={e => { e.preventDefault(); scrollTo(l.href) }}
-                style={{ ...css.sans, fontSize: 13, fontWeight: 500, color: linkColor, textDecoration: 'none', padding: '6px 11px', borderRadius: 7, transition: 'color 0.2s' }}>
+              <a
+                key={l.href}
+                href={l.href}
+                className="tv-link"
+                onClick={(e) => {
+                  e.preventDefault()
+                  scrollToSection(l.href)
+                }}
+                style={linkStyle(l.href)}
+              >
                 {l.label}
               </a>
             ))}
           </div>
 
-          {/* Desktop user icon */}
-          <div className="tv-desk" ref={deskRef} style={{ position: 'relative', marginLeft: 14 }}>
-            <button className="tv-user-btn" onClick={() => setDeskUserOpen(v => !v)} aria-label="Account"
-              style={{ width: 38, height: 38, borderRadius: '50%', background: deskUserOpen ? 'rgba(184,150,62,0.12)' : iconBg, border: `1.5px solid ${deskUserOpen ? T.gold : iconBorder}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', padding: 0, outline: 'none' }}>
-              <UserIcon color={iconStroke} size={17} />
+          {/* USER */}
+          <div ref={userRef} style={{ marginLeft: 16, position: 'relative' }}>
+            <button onClick={() => setUserOpen(v => !v)} style={{
+              width: 42,
+              height: 42,
+              borderRadius: '50%',
+              border: `1px solid rgba(184,150,62,0.35)`,
+              background: 'rgba(255,255,255,0.9)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <UserIcon size={18} color={T.navy} />
             </button>
-            {deskUserOpen && <UserDropdown onClose={() => setDeskUserOpen(false)} />}
+
+            {userOpen && <UserDropdown onClose={() => setUserOpen(false)} />}
           </div>
 
-          {/* Mobile controls */}
-          <div className="tv-mob" style={{ display: 'none', alignItems: 'center', gap: 8 }}>
-            <div ref={mobRef} style={{ position: 'relative' }}>
-              <button className="tv-user-btn" onClick={() => setMobUserOpen(v => !v)} aria-label="Account"
-                style={{ width: 36, height: 36, borderRadius: '50%', background: mobUserOpen ? 'rgba(184,150,62,0.12)' : iconBg, border: `1.5px solid ${mobUserOpen ? T.gold : iconBorder}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', padding: 0 }}>
-                <UserIcon color={iconStroke} size={16} />
-              </button>
-              {mobUserOpen && <UserDropdown onClose={() => setMobUserOpen(false)} />}
-            </div>
-            <button onClick={() => setMenuOpen(v => !v)} aria-label="Menu"
-              style={{ width: 36, height: 36, borderRadius: 9, background: iconBg, border: `1.5px solid ${iconBorder}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 0, transition: 'all .2s' }}>
-              <span className="tv-ham-line" style={{ background: iconStroke, transform: menuOpen ? 'rotate(45deg) translate(4px,4px)' : 'none' }} />
-              <span className="tv-ham-line" style={{ background: iconStroke, opacity: menuOpen ? 0 : 1 }} />
-              <span className="tv-ham-line" style={{ background: iconStroke, transform: menuOpen ? 'rotate(-45deg) translate(4px,-4px)' : 'none' }} />
+          {/* MOBILE MENU BUTTON */}
+          <div className="tv-mob" style={{ display: 'none', marginLeft: 10 }}>
+            <button onClick={() => setMenuOpen(v => !v)} style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              border: '1px solid rgba(0,0,0,0.08)',
+              background: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: 4,
+              alignItems: 'center'
+            }}>
+              <span style={{
+                width: 18, height: 2, background: T.navy,
+                transform: menuOpen ? 'rotate(45deg) translate(4px,4px)' : ''
+              }} />
+              <span style={{
+                width: 18, height: 2, background: T.navy,
+                opacity: menuOpen ? 0 : 1
+              }} />
+              <span style={{
+                width: 18, height: 2, background: T.navy,
+                transform: menuOpen ? 'rotate(-45deg) translate(4px,-4px)' : ''
+              }} />
             </button>
           </div>
+
         </div>
 
-        {/* Mobile menu */}
+        {/* MOBILE MENU */}
         {menuOpen && (
-          <div className="tv-mob-open" style={{ background: 'rgba(244,246,248,0.98)', backdropFilter: 'blur(14px)', borderTop: `1px solid ${T.border}`, padding: '14px 24px 22px' }}>
+          <div style={{ background: '#fff', padding: 14 }}>
             {NAV_LINKS.map(l => (
-              <a key={l.label} href={l.href}
-                onClick={e => { e.preventDefault(); scrollTo(l.href); setMenuOpen(false) }}
-                style={{ ...css.sans, display: 'block', fontSize: 15, fontWeight: 500, color: T.text2, textDecoration: 'none', padding: '11px 0', borderBottom: `1px solid ${T.border}` }}>
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={(e) => {
+                  e.preventDefault()
+                  scrollToSection(l.href)
+                  setMenuOpen(false)
+                }}
+                className="tv-mobile-link"
+                style={{
+                  display: 'block',
+                  padding: '12px 10px',
+                  color: T.text,
+                  textDecoration: 'none'
+                }}
+              >
                 {l.label}
               </a>
             ))}
           </div>
         )}
+
       </nav>
     </>
   )

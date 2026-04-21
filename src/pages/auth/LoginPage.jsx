@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { T, css, injectFonts, Brand } from '../theme'
+import { T, css, injectFonts } from '../theme'
 
 function AuthCard({ children }) {
   return (
@@ -66,18 +66,40 @@ export default function LoginPage() {
     }}>
       <AuthCard>
 
-        {/* LOGO (CLICK → LANDING PAGE) */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: 28
-        }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <div style={{ cursor: 'pointer' }}>
-              <Brand />
-            </div>
-          </Link>
-        </div>
+     {/* LOGO + BRAND */}
+<div style={{
+  display: 'flex',
+  justifyContent: 'center',
+  marginBottom: 28
+}}>
+  <Link to="/" style={{ textDecoration: 'none' }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      cursor: 'pointer'
+    }}>
+      <img
+        src="/logo.png"
+        alt="ThinkVerge"
+        style={{
+          height: 40,
+          objectFit: 'contain'
+        }}
+      />
+
+      <span style={{
+        ...css.serif,
+        fontSize: 20,
+        fontWeight: 700,
+        color: T.navy,
+        letterSpacing: '0.03em'
+      }}>
+        ThinkVerge
+      </span>
+    </div>
+  </Link>
+</div>
 
         {/* TITLE */}
         <h2 style={{

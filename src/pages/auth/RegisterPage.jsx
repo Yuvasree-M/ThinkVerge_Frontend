@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { T, css, injectFonts, Brand } from '../theme'
+import { T, css, injectFonts } from '../theme'
 
 const ROLES = [
   { key: 'STUDENT', label: '🎓 Student' },
@@ -36,7 +36,6 @@ export default function RegisterPage() {
 
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
-  const [registered, setRegistered] = useState(false)
 
   useEffect(() => {
     injectFonts()
@@ -47,7 +46,6 @@ export default function RegisterPage() {
     setError('')
     try {
       await regFn(form)
-      setRegistered(true)
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
     }
@@ -77,7 +75,6 @@ export default function RegisterPage() {
     fontWeight: 600,
     fontSize: 13,
     textAlign: 'center',
-    transition: 'all .2s',
   })
 
   return (
@@ -91,14 +88,40 @@ export default function RegisterPage() {
     }}>
       <AuthCard>
 
-        {/* LOGO */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <div style={{ cursor: 'pointer' }}>
-              <Brand />
-            </div>
-          </Link>
-        </div>
+     {/* LOGO + BRAND */}
+<div style={{
+  display: 'flex',
+  justifyContent: 'center',
+  marginBottom: 28
+}}>
+  <Link to="/" style={{ textDecoration: 'none' }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      cursor: 'pointer'
+    }}>
+      <img
+        src="/logo.png"
+        alt="ThinkVerge"
+        style={{
+          height: 40,
+          objectFit: 'contain'
+        }}
+      />
+
+      <span style={{
+        ...css.serif,
+        fontSize: 20,
+        fontWeight: 700,
+        color: T.navy,
+        letterSpacing: '0.03em'
+      }}>
+        ThinkVerge
+      </span>
+    </div>
+  </Link>
+</div>
 
         {/* TITLE */}
         <h2 style={{
@@ -141,7 +164,6 @@ export default function RegisterPage() {
         {/* FORM */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* NAME */}
           <input
             placeholder="Full Name"
             required
@@ -150,7 +172,6 @@ export default function RegisterPage() {
             style={inputStyle}
           />
 
-          {/* EMAIL */}
           <input
             type="email"
             placeholder="Email Address"
@@ -160,7 +181,6 @@ export default function RegisterPage() {
             style={inputStyle}
           />
 
-          {/* PASSWORD */}
           <div style={{ position: 'relative' }}>
             <input
               type={showPw ? 'text' : 'password'}
@@ -182,8 +202,7 @@ export default function RegisterPage() {
                 transform: 'translateY(-50%)',
                 background: 'none',
                 border: 'none',
-                cursor: 'pointer',
-                fontSize: 14
+                cursor: 'pointer'
               }}
             >
               {showPw ? '🙈' : '👁'}
@@ -198,9 +217,8 @@ export default function RegisterPage() {
               fontWeight: 600,
               color: T.grey5,
               textTransform: 'uppercase',
-              letterSpacing: '0.09em',
-              display: 'block',
-              marginBottom: 8
+              marginBottom: 8,
+              display: 'block'
             }}>
               I am joining as
             </label>
@@ -218,7 +236,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* SUBMIT */}
           <button
             type="submit"
             disabled={loading}

@@ -1,12 +1,12 @@
 /* ─── ThinkVerge Design System ─────────────────────────────── */
 
 export const T = {
-  navy:    '#0D1B2A',
-  navy2:   '#162233',
-  navy3:   '#1E2F42',
-  navyMid: '#2B4260',
+  navy:    '#063c75',
+  navy2:   '#22416b',
+  navy3:   '#0a0466',
+  navyMid: '#163358',
   blue:    '#3A5F82',
-  blueL:   '#5580A0',
+  blueL:   '#3a75a1',
   grey1:   '#F4F6F8',
   grey2:   '#E8ECF0',
   grey3:   '#D0D7DF',
