@@ -265,10 +265,10 @@ export const uploadApi = {
 // ── Public Landing & Feedback ─────────────────────────────────
 export const publicApi = {
   instructors:        ()     => api.get('/public/instructors'),
-  testimonials:       ()     => api.get('/public/testimonials'),
   submitFeedback:     (data) => api.post('/public/feedback', data),
   pendingFeedback:    ()     => api.get('/public/feedback/pending'),
   approveFeedback:    (id)   => api.put(`/public/feedback/${id}/approve`),
   deleteFeedback:     (id)   => api.delete(`/public/feedback/${id}`),
+  approvedFeedback: () => api.get('/public/feedback/approved'),
 }
 

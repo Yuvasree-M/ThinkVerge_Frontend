@@ -1,7 +1,40 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { Eye, EyeOff, Layers, ArrowRight, Home } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { T, css, PageHeroBg, Brand, injectFonts } from '../theme'
+import { useEffect } from 'react'
+
+/* ─── Shared auth form card wrapper ─────────────────────────── */
+function AuthCard({ children }) {
+  return (
+    <div style={{
+      background: T.white,
+      border: `1px solid ${T.grey2}`,
+      borderRadius: 22,
+      padding: '38px 36px',
+      boxShadow: '0 24px 60px rgba(13,27,42,0.18)',
+      width: '100%',
+      maxWidth: 420,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+/* ─── Stats shown on the left side ──────────────────────────── */
+function HeroStats() {
+  return (
+    <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginTop: 48 }}>
+      {[['1.2K+', 'Students'], ['340+', 'Courses'], ['85+', 'Instructors']].map(([n, l]) => (
+        <div key={l}>
+          <p style={{ ...css.serif, fontSize: 26, fontWeight: 700, color: T.goldL, margin: 0 }}>{n}</p>
+          <p style={{ ...css.sans, fontSize: 10, color: 'rgba(255,255,255,0.40)', margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function LoginPage() {
   const { login, loading } = useAuth()
@@ -13,6 +46,8 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => { injectFonts() }, [])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -23,125 +58,109 @@ export default function LoginPage() {
       navigate(dest, { replace: true })
     } catch (err) {
       const msg = err.response?.data?.message || ''
-      if (msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('approv')) {
-        setError('Your account is pending admin approval. Please wait for an administrator to approve your registration.')
-      } else {
-        setError(msg || 'Invalid email or password')
-      }
+      setError(
+        msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('approv')
+          ? 'Your account is pending admin approval. Please wait for an administrator to approve your registration.'
+          : msg || 'Invalid email or password'
+      )
     }
   }
 
+  const isApprovalErr = error.includes('pending') || error.includes('approval')
+
   return (
-    <div className="min-h-screen flex bg-surface">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-royal-gradient flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-gold-500/10 rounded-full translate-y-40 -translate-x-20" />
-
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gold-gradient flex items-center justify-center shadow-gold">
-              <Layers size={20} className="text-white" />
-            </div>
-            <div>
-              <p className="font-display font-bold text-white text-lg">ThinkVerge</p>
-              <p className="text-royal-200 text-xs">Learning Management System</p>
-            </div>
+    <div style={{ minHeight: '100vh', display: 'flex', ...css.sans }}>
+      {/* Left panel — dark hero */}
+      <PageHeroBg style={{
+        display: 'none',
+        ...(typeof window !== 'undefined' && window.innerWidth >= 1024 ? { display: 'flex' } : {}),
+        flex: '0 0 48%', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '44px 52px',
+      }}>
+        <style>{`.tv-left-panel{display:flex!important}@media(max-width:1023px){.tv-left-panel{display:none!important}}`}</style>
+        <div className="tv-left-panel" style={{ flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Brand light />
+            <Link to="/" style={{ ...css.sans, fontSize: 12, color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}>← Home</Link>
           </div>
-          <Link to="/" className="flex items-center gap-1.5 text-royal-200 hover:text-white transition-colors text-xs">
-            <Home size={14} />
-            <span>Home</span>
-          </Link>
-        </div>
 
-        <div className="relative z-10">
-          <h1 className="font-display font-bold text-white text-4xl leading-tight mb-4">
-            Empowering<br />Learning at<br />
-            <span className="text-gold-300">Every Level</span>
-          </h1>
-          <p className="text-royal-200 text-base leading-relaxed max-w-sm">
-            A unified platform for students, instructors, and administrators to manage the full learning lifecycle.
+          <div>
+            <h1 style={{ ...css.serif, fontSize: 'clamp(36px,4vw,58px)', fontWeight: 700, color: T.white, lineHeight: 1.10, letterSpacing: '-0.02em', margin: '0 0 18px' }}>
+              Empowering<br />Learning at<br />
+              <em style={{ fontStyle: 'italic', color: T.goldL }}>Every Level</em>
+            </h1>
+            <p style={{ ...css.sans, fontSize: 15, color: 'rgba(255,255,255,0.52)', lineHeight: 1.78, maxWidth: 360 }}>
+              A unified platform for students, instructors, and administrators to manage the full learning lifecycle.
+            </p>
+            <HeroStats />
+          </div>
+
+          <p style={{ ...css.sans, fontSize: 11, color: 'rgba(255,255,255,0.22)', margin: 0 }}>
+            © 2026 ThinkVerge LMS
           </p>
         </div>
+      </PageHeroBg>
 
-        <div className="flex gap-6 relative z-10">
-          {[['Students', '1.2k+'], ['Courses', '340+'], ['Instructors', '85+']].map(([label, val]) => (
-            <div key={label}>
-              <p className="text-white font-display font-bold text-xl">{val}</p>
-              <p className="text-royal-300 text-xs">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md animate-slide-up">
-          {/* Mobile header */}
-          <div className="flex items-center justify-between mb-8 lg:hidden">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-royal-gradient flex items-center justify-center">
-                <Layers size={18} className="text-white" />
-              </div>
-              <p className="font-display font-bold text-navy-900">ThinkVerge LMS</p>
-            </div>
-            <Link to="/" className="flex items-center gap-1.5 text-xs text-slate-lms hover:text-royal-600 transition-colors">
-              <Home size={14} />
-              <span>Home</span>
-            </Link>
+      {/* Right panel — form */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', background: T.bg }}>
+        <AuthCard>
+          {/* Mobile brand */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+            <Brand />
+            <Link to="/" style={{ ...css.sans, fontSize: 12, color: T.grey4, textDecoration: 'none' }}>← Home</Link>
           </div>
 
-          <h2 className="font-display font-bold text-navy-900 text-3xl mb-1">Welcome back</h2>
-          <p className="text-slate-lms text-sm mb-8">Sign in to continue to your dashboard</p>
+          <h2 style={{ ...css.serif, fontSize: 28, fontWeight: 700, color: T.navy, margin: '0 0 4px' }}>Welcome back</h2>
+          <p style={{ ...css.sans, fontSize: 13, color: T.grey4, marginBottom: 24 }}>Sign in to continue to your dashboard</p>
 
           {error && (
-            <div className={`mb-4 p-3 rounded-xl text-sm border ${error.includes('pending') || error.includes('approval')
-              ? 'bg-amber-50 border-amber-100 text-amber-700'
-              : 'bg-red-50 border-red-100 text-red-600'}`}>
-              {error.includes('pending') || error.includes('approval')
-                ? '⏳ ' + error
-                : error}
+            <div style={{
+              marginBottom: 16, padding: '12px 14px', borderRadius: 12, fontSize: 13,
+              background: isApprovalErr ? 'rgba(184,150,62,0.08)' : 'rgba(220,38,38,0.06)',
+              border: `1px solid ${isApprovalErr ? T.borderG : 'rgba(220,38,38,0.20)'}`,
+              color: isApprovalErr ? T.gold : '#dc2626',
+              ...css.sans,
+            }}>
+              {isApprovalErr ? '⏳ ' : '⚠ '}{error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="label">Email address</label>
-              <input
-                type="email" required
-                className="input"
-                placeholder="you@example.com"
-                value={form.email}
+              <label style={{ ...css.sans, fontSize: 11, fontWeight: 600, color: T.grey5, textTransform: 'uppercase', letterSpacing: '0.09em', display: 'block', marginBottom: 6 }}>Email Address</label>
+              <input type="email" required placeholder="you@example.com" value={form.email}
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              />
+                style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${T.grey2}`, background: T.grey1, ...css.sans, fontSize: 14, color: T.text, outline: 'none', boxSizing: 'border-box' }}
+                onFocus={e => e.target.style.borderColor = T.gold} onBlur={e => e.target.style.borderColor = T.grey2} />
             </div>
-
             <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <input
-                  type={showPw ? 'text' : 'password'} required
-                  className="input pr-10"
-                  placeholder="••••••••"
-                  value={form.password}
+              <label style={{ ...css.sans, fontSize: 11, fontWeight: 600, color: T.grey5, textTransform: 'uppercase', letterSpacing: '0.09em', display: 'block', marginBottom: 6 }}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <input type={showPw ? 'text' : 'password'} required placeholder="••••••••" value={form.password}
                   onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                />
-                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-lms hover:text-navy-600" onClick={() => setShowPw(p => !p)}>
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  style={{ width: '100%', padding: '11px 40px 11px 14px', borderRadius: 10, border: `1.5px solid ${T.grey2}`, background: T.grey1, ...css.sans, fontSize: 14, color: T.text, outline: 'none', boxSizing: 'border-box' }}
+                  onFocus={e => e.target.style.borderColor = T.gold} onBlur={e => e.target.style.borderColor = T.grey2} />
+                <button type="button" onClick={() => setShowPw(p => !p)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: T.grey4, fontSize: 15, padding: 0 }}>
+                  {showPw ? '🙈' : '👁'}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="btn-primary w-full justify-center py-3 mt-2" disabled={loading}>
-              {loading ? 'Signing in...' : <><span>Sign In</span><ArrowRight size={16} /></>}
+            <button type="submit" disabled={loading}
+              style={{ marginTop: 6, width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: `linear-gradient(135deg,${T.navy},${T.navyMid})`, color: T.white, ...css.sans, fontSize: 15, fontWeight: 600, cursor: 'pointer', transition: 'opacity .2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              {loading ? 'Signing in…' : 'Sign In →'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-lms mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-royal-600 font-semibold hover:text-royal-700">Create one</Link>
-          </p>
-        </div>
+          <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${T.grey2}`, textAlign: 'center' }}>
+            <p style={{ ...css.sans, fontSize: 13, color: T.grey4, margin: 0 }}>
+              Don't have an account?{' '}
+              <Link to="/register" style={{ color: T.gold, fontWeight: 700, textDecoration: 'none' }}>Create one</Link>
+            </p>
+          </div>
+        </AuthCard>
       </div>
     </div>
   )
