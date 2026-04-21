@@ -8,12 +8,19 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Restore session on app load via cookie
+  // Restore session on app load from localStorage token
   const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('jwt')
+    if (!token) {
+      setLoading(false)
+      return
+    }
     try {
       const { data } = await userApi.me()
       setUser(data)
     } catch {
+      // Token invalid/expired — clear it
+      localStorage.removeItem('jwt')
       setUser(null)
     } finally {
       setLoading(false)
@@ -26,7 +33,10 @@ export function AuthProvider({ children }) {
     setLoading(true)
     try {
       const { data } = await authApi.login(credentials)
-      // Backend sets HttpOnly cookie; we get user info back
+      // ✅ Save token to localStorage
+      if (data.token) {
+        localStorage.setItem('jwt', data.token)
+      }
       setUser(data.user ?? { email: credentials.email, role: data.role, name: data.name })
       toast.success('Welcome back!')
       return data
@@ -39,7 +49,6 @@ export function AuthProvider({ children }) {
     setLoading(true)
     try {
       const { data } = await authApi.register(payload)
-      // After registration user must wait for admin approval — don't log them in
       toast.success('Registration submitted! Await admin approval before logging in.')
       return data
     } finally {
@@ -49,6 +58,8 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try { await authApi.logout() } catch {}
+    // ✅ Remove token from localStorage
+    localStorage.removeItem('jwt')
     setUser(null)
     toast.success('Logged out successfully')
   }, [])
