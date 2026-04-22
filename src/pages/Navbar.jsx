@@ -186,7 +186,17 @@ export default function Navbar({ scrolled }) {
               textDecoration: 'none'
             }}
           >
-            <img src="/logo.png" style={{ height: 40 }} />
+            <img
+  src="/logo.png"
+  alt="ThinkVerge"
+  style={{
+    width: 40,
+    height: 40,
+    objectFit: 'cover',
+    borderRadius: '50%',
+    border: `2px solid ${T.grey2}` // optional nice touch
+  }}
+/>
 
             <span style={{
               ...css.serif,

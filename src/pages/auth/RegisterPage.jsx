@@ -101,15 +101,17 @@ export default function RegisterPage() {
       gap: 10,
       cursor: 'pointer'
     }}>
-      <img
-        src="/logo.png"
-        alt="ThinkVerge"
-        style={{
-          height: 40,
-          objectFit: 'contain'
-        }}
-      />
-
+     <img
+  src="/logo.png"
+  alt="ThinkVerge"
+  style={{
+    width: 40,
+    height: 40,
+    objectFit: 'cover',
+    borderRadius: '50%',
+    border: `2px solid ${T.grey2}` // optional nice touch
+  }}
+/>
       <span style={{
         ...css.serif,
         fontSize: 20,
