@@ -10,59 +10,85 @@ import { useAuth } from '../../contexts/AuthContext'
 export default function StudentDashboard() {
   const { user } = useAuth()
 
-  const { data: enrollments = [], isLoading: le } = useQuery({
-    queryKey: ['my-enrollments'],
-    queryFn: () => enrollmentApi.myEnrollments().then(r => r.data),
-  })
-  const { data: progress = [], isLoading: lp } = useQuery({
-    queryKey: ['my-progress'],
-    queryFn: () => progressApi.myProgress().then(r => r.data),
-  })
-  const { data: submissions = [] } = useQuery({
-    queryKey: ['my-submissions'],
-    queryFn: () => submissionApi.mySubmissions().then(r => r.data),
-  })
-function CourseProgress({ courseId, progressMap }) {
-  const { data: modules = [] } = useQuery({
-    queryKey: ['modules', courseId],
-    queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
-    enabled: !!courseId,
-  })
+  // const { data: enrollments = [], isLoading: le } = useQuery({
+  //   queryKey: ['my-enrollments'],
+  //   queryFn: () => enrollmentApi.myEnrollments().then(r => r.data),
+  // })
+  // const { data: progress = [], isLoading: lp } = useQuery({
+  //   queryKey: ['my-progress'],
+  //   queryFn: () => progressApi.myProgress().then(r => r.data),
+  // })
+  // const { data: submissions = [] } = useQuery({
+  //   queryKey: ['my-submissions'],
+  //   queryFn: () => submissionApi.mySubmissions().then(r => r.data),
+  // })
+  const { data, isLoading } = useQuery({
+  queryKey: ['student-dashboard'],
+  queryFn: () => api.get('/dashboard/student').then(r => r.data),
+  staleTime: 60_000, // treat as fresh for 1 minute
+})
+const enrollments = data?.enrollments ?? []
+const progress    = data?.progress    ?? []
+const submissions = data?.submissions ?? []
 
-  const { data: lessons = [] } = useQuery({
-    queryKey: ['lessons', courseId],
-    queryFn: async () => {
-      const res = await Promise.all(
-        modules.map(m =>
-          lessonApi.getByModule(m.id).then(r => r.data)
-        )
-      )
-      return res.flat()
-    },
-    enabled: modules.length > 0,
-  })
+// function CourseProgress({ courseId, progressMap }) {
+//   const { data: modules = [] } = useQuery({
+//     queryKey: ['modules', courseId],
+//     queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
+//     enabled: !!courseId,
+//   })
 
-  let pct = 0
+//   const { data: lessons = [] } = useQuery({
+//     queryKey: ['lessons', courseId],
+//     queryFn: async () => {
+//       const res = await Promise.all(
+//         modules.map(m =>
+//           lessonApi.getByModule(m.id).then(r => r.data)
+//         )
+//       )
+//       return res.flat()
+//     },
+//     enabled: modules.length > 0,
+//   })
 
-  if (lessons.length > 0) {
-    const completed = lessons.filter(l => {
-      const p = progressMap[l.id]
-      return p?.completed || (p?.percentage ?? 0) >= 100
-    }).length
+//   let pct = 0
 
-    pct = Math.round((completed / lessons.length) * 100)
-  }
+//   if (lessons.length > 0) {
+//     const completed = lessons.filter(l => {
+//       const p = progressMap[l.id]
+//       return p?.completed || (p?.percentage ?? 0) >= 100
+//     }).length
+
+//     pct = Math.round((completed / lessons.length) * 100)
+//   }
+
+//   return (
+//     <div>
+//       {/* % TEXT */}
+//       <div className="flex justify-end mb-1">
+//         <span className="text-xs text-royal-600 font-semibold">
+//           {pct}%
+//         </span>
+//       </div>
+
+//       {/* BAR */}
+//       <ProgressBar value={pct} showPercent={false} />
+//     </div>
+//   )
+// }
+function CourseProgress({ courseId, progressList }) {
+  const courseProgress = progressList.filter(p => p.courseId === courseId)
+  const total = courseProgress.length
+  const completed = courseProgress.filter(
+    p => p.completed || (p.percentage ?? 0) >= 100
+  ).length
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
   return (
     <div>
-      {/* % TEXT */}
       <div className="flex justify-end mb-1">
-        <span className="text-xs text-royal-600 font-semibold">
-          {pct}%
-        </span>
+        <span className="text-xs text-royal-600 font-semibold">{pct}%</span>
       </div>
-
-      {/* BAR */}
       <ProgressBar value={pct} showPercent={false} />
     </div>
   )
