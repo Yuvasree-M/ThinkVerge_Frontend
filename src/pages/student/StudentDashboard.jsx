@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { enrollmentApi, progressApi, submissionApi, moduleApi, lessonApi } from '../../api/services'
+import api from '../../api/axios'
 import StatCard from '../../components/common/StatCard'
 import ProgressBar from '../../components/common/ProgressBar'
 import { PageSpinner } from '../../components/common/Spinner'
@@ -7,77 +7,8 @@ import { BookOpen, BarChart2, FileText, Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
-export default function StudentDashboard() {
-  const { user } = useAuth()
-
-  // const { data: enrollments = [], isLoading: le } = useQuery({
-  //   queryKey: ['my-enrollments'],
-  //   queryFn: () => enrollmentApi.myEnrollments().then(r => r.data),
-  // })
-  // const { data: progress = [], isLoading: lp } = useQuery({
-  //   queryKey: ['my-progress'],
-  //   queryFn: () => progressApi.myProgress().then(r => r.data),
-  // })
-  // const { data: submissions = [] } = useQuery({
-  //   queryKey: ['my-submissions'],
-  //   queryFn: () => submissionApi.mySubmissions().then(r => r.data),
-  // })
-  const { data, isLoading } = useQuery({
-  queryKey: ['student-dashboard'],
-  queryFn: () => api.get('/dashboard/student').then(r => r.data),
-  staleTime: 60_000, // treat as fresh for 1 minute
-})
-const enrollments = data?.enrollments ?? []
-const progress    = data?.progress    ?? []
-const submissions = data?.submissions ?? []
-
-// function CourseProgress({ courseId, progressMap }) {
-//   const { data: modules = [] } = useQuery({
-//     queryKey: ['modules', courseId],
-//     queryFn: () => moduleApi.getByCourse(courseId).then(r => r.data),
-//     enabled: !!courseId,
-//   })
-
-//   const { data: lessons = [] } = useQuery({
-//     queryKey: ['lessons', courseId],
-//     queryFn: async () => {
-//       const res = await Promise.all(
-//         modules.map(m =>
-//           lessonApi.getByModule(m.id).then(r => r.data)
-//         )
-//       )
-//       return res.flat()
-//     },
-//     enabled: modules.length > 0,
-//   })
-
-//   let pct = 0
-
-//   if (lessons.length > 0) {
-//     const completed = lessons.filter(l => {
-//       const p = progressMap[l.id]
-//       return p?.completed || (p?.percentage ?? 0) >= 100
-//     }).length
-
-//     pct = Math.round((completed / lessons.length) * 100)
-//   }
-
-//   return (
-//     <div>
-//       {/* % TEXT */}
-//       <div className="flex justify-end mb-1">
-//         <span className="text-xs text-royal-600 font-semibold">
-//           {pct}%
-//         </span>
-//       </div>
-
-//       {/* BAR */}
-//       <ProgressBar value={pct} showPercent={false} />
-//     </div>
-//   )
-// }
-function CourseProgress({ courseId, progressList }) {
-  const courseProgress = progressList.filter(p => p.courseId === courseId)
+function CourseProgress({ courseId, progress }) {
+  const courseProgress = progress.filter(p => p.courseId === courseId)
   const total = courseProgress.length
   const completed = courseProgress.filter(
     p => p.completed || (p.percentage ?? 0) >= 100
@@ -93,18 +24,31 @@ function CourseProgress({ courseId, progressList }) {
     </div>
   )
 }
-const progressMap = {}
-progress.forEach(p => {
-  progressMap[p.lessonId] = p
-})
-  if (le || lp) return <PageSpinner />
+
+export default function StudentDashboard() {
+  const { user } = useAuth()
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['student-dashboard'],
+    queryFn: () => api.get('/dashboard/student').then(r => r.data),
+    staleTime: 60_000,
+  })
+
+  const enrollments = data?.enrollments ?? []
+  const progress    = data?.progress    ?? []
+  const submissions = data?.submissions ?? []
+
+  if (isLoading) return <PageSpinner />
 
   const approved   = enrollments.filter(e => e.status === 'APPROVED')
   const graded     = submissions.filter(s => s.grade != null)
-  const avgGrade   = graded.length ? Math.round(graded.reduce((s, x) => s + x.grade, 0) / graded.length) : 0
-const completedLessons = progress.filter(
-  p => p.completed || (p.percentage ?? 0) >= 100
-).length
+  const avgGrade   = graded.length
+    ? Math.round(graded.reduce((sum, x) => sum + x.grade, 0) / graded.length)
+    : 0
+  const completedLessons = progress.filter(
+    p => p.completed || (p.percentage ?? 0) >= 100
+  ).length
+
   return (
     <div className="space-y-8">
       {/* Welcome banner */}
@@ -113,17 +57,21 @@ const completedLessons = progress.filter(
         <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-gold-500/10 rounded-full translate-y-32" />
         <div className="relative z-10">
           <p className="text-royal-200 text-sm font-medium mb-1">Welcome back,</p>
-          <h2 className="font-display font-bold text-2xl mb-1">{user?.name || user?.email?.split('@')[0]} 👋</h2>
-          <p className="text-royal-200 text-sm">You have {approved.length} active course{approved.length !== 1 ? 's' : ''} in progress.</p>
+          <h2 className="font-display font-bold text-2xl mb-1">
+            {user?.name || user?.email?.split('@')[0]} 👋
+          </h2>
+          <p className="text-royal-200 text-sm">
+            You have {approved.length} active course{approved.length !== 1 ? 's' : ''} in progress.
+          </p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Enrolled"    value={approved.length}    icon={BookOpen}  color="blue" />
-        <StatCard label="Lessons Done"value={completedLessons}    icon={BarChart2} color="green" />
-        <StatCard label="Submissions" value={submissions.length} icon={FileText}  color="gold" />
-        <StatCard label="Avg. Grade"  value={avgGrade ? `${avgGrade}%` : '—'} icon={Trophy} color="purple" />
+        <StatCard label="Enrolled"     value={approved.length}                    icon={BookOpen}  color="blue" />
+        <StatCard label="Lessons Done" value={completedLessons}                   icon={BarChart2} color="green" />
+        <StatCard label="Submissions"  value={submissions.length}                 icon={FileText}  color="gold" />
+        <StatCard label="Avg. Grade"   value={avgGrade ? `${avgGrade}%` : '—'}   icon={Trophy}    color="purple" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -134,24 +82,16 @@ const completedLessons = progress.filter(
             <Link to="/student/enrollments" className="btn-ghost text-xs">View all →</Link>
           </div>
           <div className="space-y-4">
-{approved.slice(0, 4).map(e => {
-  const courseId = e.course?.id
-
-  return (
-    <div key={e.id}>
-      <div className="flex items-center justify-between mb-1.5">
-        <p className="text-sm font-medium text-navy-800 truncate flex-1 mr-2">
-          {e.course?.title}
-        </p>
-      </div>
-
-      <CourseProgress
-        courseId={courseId}
-        progressMap={progressMap}
-      />
-    </div>
-  )
-})}
+            {approved.slice(0, 4).map(e => (
+              <div key={e.id}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-sm font-medium text-navy-800 truncate flex-1 mr-2">
+                    {e.course?.title}
+                  </p>
+                </div>
+                <CourseProgress courseId={e.course?.id} progress={progress} />
+              </div>
+            ))}
             {approved.length === 0 && (
               <div className="text-center py-4">
                 <p className="text-sm text-slate-lms mb-3">No active courses yet.</p>
@@ -174,8 +114,12 @@ const completedLessons = progress.filter(
                   <FileText size={14} className="text-gold-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-navy-800 truncate">{s.assignment?.title || 'Assignment'}</p>
-                  <p className="text-xs text-slate-lms">{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString() : '—'}</p>
+                  <p className="text-sm font-medium text-navy-800 truncate">
+                    {s.assignmentTitle || 'Assignment'}
+                  </p>
+                  <p className="text-xs text-slate-lms">
+                    {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString() : '—'}
+                  </p>
                 </div>
                 {s.grade != null
                   ? <span className="badge-green text-xs">{s.grade} pts</span>
@@ -183,7 +127,9 @@ const completedLessons = progress.filter(
                 }
               </div>
             ))}
-            {submissions.length === 0 && <p className="text-sm text-slate-lms text-center py-4">No submissions yet.</p>}
+            {submissions.length === 0 && (
+              <p className="text-sm text-slate-lms text-center py-4">No submissions yet.</p>
+            )}
           </div>
         </div>
       </div>
