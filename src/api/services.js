@@ -149,6 +149,11 @@ export const userApi = {
   approveUser:  (id)        => api.put(`/users/${id}/approve`),
   changeRole:   (id, role)  => api.put(`/users/${id}/role?role=${role}`),
   deleteUser:   (id)        => api.delete(`/users/${id}`),
+  uploadProfileImage: (formData) =>
+    api.post('/users/profile-image', formData),   // POST — first upload
+
+  updateProfile: (formData) =>
+    api.put('/users/profile', formData),  
 }
 
 // ── Courses ───────────────────────────────────────────────

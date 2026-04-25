@@ -130,24 +130,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           })}
         </nav>
 
-        {/* User */}
         <div className="border-t border-white/10 p-3">
-          {!collapsed && (
-            <div className="flex items-center gap-3 px-2 py-2 mb-1">
-              <div className="w-8 h-8 rounded-full bg-gold-gradient flex items-center justify-center text-white text-xs font-bold">
-                {(user?.name || user?.email || 'U')[0].toUpperCase()}
-              </div>
-
-              <div className="min-w-0">
-                <p className="text-white text-xs font-semibold truncate">
-                  {user?.name || user?.email}
-                </p>
-                <p className="text-royal-300 text-xs truncate">
-                  {user?.email}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Logout */}
           <button

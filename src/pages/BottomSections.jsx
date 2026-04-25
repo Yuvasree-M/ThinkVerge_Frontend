@@ -393,6 +393,7 @@ export function Footer() {
                 alt="ThinkVerge"
                 style={{
                   height: 32,
+                  borderRadius: 10,
                   width: 'auto',
                   objectFit: 'contain'
                 }}
