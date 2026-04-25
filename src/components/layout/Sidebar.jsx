@@ -6,7 +6,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, BookOpen, Users, GraduationCap,
   ClipboardList, BarChart2, FileText, Award,
-  LogOut, ChevronRight, Layers
+  LogOut, ChevronRight, Layers,MessageSquare
 } from 'lucide-react'
 
 import ConfirmDialog from '../common/ConfirmDialog'
@@ -23,6 +23,8 @@ const NAV = {
     { to: '/instructor/enrollments', label: 'Enrollments', icon: Users },
     { to: '/instructor/assignments', label: 'Assignments', icon: ClipboardList },
     { to: '/instructor/submissions', label: 'Submissions', icon: FileText },
+    { to: '/instructor/messages', label: 'Messages', icon: MessageSquare },
+    
   ],
   STUDENT: [
     { to: '/student', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,6 +33,7 @@ const NAV = {
     { to: '/student/progress', label: 'Progress', icon: BarChart2 },
     { to: '/student/submissions', label: 'Submissions', icon: FileText },
     { to: '/student/certificates', label: 'Certificates', icon: Award },
+    { to: '/student/messages', label: 'Messages', icon: MessageSquare },
   ],
 }
 

@@ -276,4 +276,38 @@ export const publicApi = {
   deleteFeedback:     (id)   => api.delete(`/public/feedback/${id}`),
   approvedFeedback: () => api.get('/public/feedback/approved'),
 }
+// ─── Message API ──────────────────────────────────────────────────────────────
+// Replace the existing messageApi block in src/api/services.js with this.
 
+export const messageApi = {
+  // Send a human message (student → instructor or instructor → student)
+  sendMessage: (data) => api.post('/messages', data),
+
+  // Ask AI and get reply — Spring AI calls Gemini on the server.
+  // Returns ApiResponse<String>: { success, message, data: "<ai reply text>" }
+  askAi: (courseId, content) =>
+    api.post('/messages/ai/ask', { courseId, content }),
+
+  // Persist an AI chat message (logging only, no Gemini call)
+  saveAiMessage: (courseId, content) =>
+    api.post('/messages/ai/chat', { courseId, content }),
+
+  // Get direct conversation between two users in a course
+  getDirectMessages: (courseId, otherUserId) =>
+    api.get(`/messages/direct/${courseId}/${otherUserId}`),
+
+  // All messages in a course (instructor view)
+  getCourseMessages: (courseId) => api.get(`/messages/course/${courseId}`),
+
+  // Enrolled students for instructor chat
+  getCourseStudents: (courseId) =>
+    api.get(`/messages/course/${courseId}/students`),
+
+  // Get instructor info (for student chat sidebar)
+  getCourseInstructor: (courseId) =>
+    api.get(`/messages/course/${courseId}/instructor`),
+
+  // Sidebar course-chat lists
+  getStudentChats: () => api.get('/messages/chats/student'),
+  getInstructorChats: () => api.get('/messages/chats/instructor'),
+}

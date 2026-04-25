@@ -34,7 +34,7 @@ const StudentEnrollmentsPage   = lazy(() => import("./pages/student/StudentEnrol
 const StudentProgressPage      = lazy(() => import("./pages/student/StudentProgressPage.jsx"));
 const StudentSubmissionsPage   = lazy(() => import("./pages/student/StudentSubmissionsPage.jsx"));
 const CertificatePage          = lazy(() => import("./pages/student/CertificatePage.jsx"));
-
+const MessagingPage            = lazy(() => import('./pages/MessagingPage.jsx'))
 // ---------- Guards ----------
 
 const RequireAuth = ({ children }) => {
@@ -109,6 +109,7 @@ export default function App() {
               <Route path="/instructor/submissions"  element={<InstructorSubmissionsPage />} />
               <Route path="/instructor/course/:courseId/assignments"        element={<InstructorAssignmentsPage />} />
               <Route path="/instructor/assignment/:assignmentId/submissions" element={<InstructorSubmissionsPage />} />
+              <Route path="/instructor/messages" element={<MessagingPage />} />
             </Route>
 
             {/* ================= STUDENT ================= */}
@@ -125,6 +126,7 @@ export default function App() {
               <Route path="/student/progress"     element={<StudentProgressPage />} />
               <Route path="/student/certificates" element={<CertificatePage />} />
               <Route path="/student/submissions"  element={<StudentSubmissionsPage />} />
+          <Route path="/student/messages" element={<MessagingPage />} />
             </Route>
 
             {/* Errors */}
