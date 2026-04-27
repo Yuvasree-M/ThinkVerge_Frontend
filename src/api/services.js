@@ -14,8 +14,15 @@
 //   students:     ()          => api.get('/users/students'),
 //   updateLastSeen: ()        => api.put('/users/last-seen'),
 //   all:          ()          => api.get('/users'),
+//   pending:      ()          => api.get('/users/pending'),
+//   approveUser:  (id)        => api.put(`/users/${id}/approve`),
 //   changeRole:   (id, role)  => api.put(`/users/${id}/role?role=${role}`),
 //   deleteUser:   (id)        => api.delete(`/users/${id}`),
+//   uploadProfileImage: (formData) =>
+//     api.post('/users/profile-image', formData),   // POST — first upload
+
+//   updateProfile: (formData) =>
+//     api.put('/users/profile', formData),  
 // }
 
 // // ── Courses ───────────────────────────────────────────────
@@ -129,6 +136,51 @@
 //   },
 // }
 
+// // ── Public Landing & Feedback ─────────────────────────────────
+// export const publicApi = {
+//   instructors:        ()     => api.get('/public/instructors'),
+//   submitFeedback:     (data) => api.post('/public/feedback', data),
+//   pendingFeedback:    ()     => api.get('/public/feedback/pending'),
+//   approveFeedback:    (id)   => api.put(`/public/feedback/${id}/approve`),
+//   deleteFeedback:     (id)   => api.delete(`/public/feedback/${id}`),
+//   approvedFeedback: () => api.get('/public/feedback/approved'),
+// }
+// // ─── Message API ──────────────────────────────────────────────────────────────
+// // Replace the existing messageApi block in src/api/services.js with this.
+
+// export const messageApi = {
+//   // Send a human message (student → instructor or instructor → student)
+//   sendMessage: (data) => api.post('/messages', data),
+
+//   // Ask AI and get reply — Spring AI calls Gemini on the server.
+//   // Returns ApiResponse<String>: { success, message, data: "<ai reply text>" }
+//   askAi: (courseId, content) =>
+//     api.post('/messages/ai/ask', { courseId, content }),
+
+//   // Persist an AI chat message (logging only, no Gemini call)
+//   saveAiMessage: (courseId, content) =>
+//     api.post('/messages/ai/chat', { courseId, content }),
+
+//   // Get direct conversation between two users in a course
+//   getDirectMessages: (courseId, otherUserId) =>
+//     api.get(`/messages/direct/${courseId}/${otherUserId}`),
+
+//   // All messages in a course (instructor view)
+//   getCourseMessages: (courseId) => api.get(`/messages/course/${courseId}`),
+
+//   // Enrolled students for instructor chat
+//   getCourseStudents: (courseId) =>
+//     api.get(`/messages/course/${courseId}/students`),
+
+//   // Get instructor info (for student chat sidebar)
+//   getCourseInstructor: (courseId) =>
+//     api.get(`/messages/course/${courseId}/instructor`),
+
+//   // Sidebar course-chat lists
+//   getStudentChats: () => api.get('/messages/chats/student'),
+//   getInstructorChats: () => api.get('/messages/chats/instructor'),
+// }
+
 import api from './axios'
 
 // ── Auth ──────────────────────────────────────────────────
@@ -149,11 +201,8 @@ export const userApi = {
   approveUser:  (id)        => api.put(`/users/${id}/approve`),
   changeRole:   (id, role)  => api.put(`/users/${id}/role?role=${role}`),
   deleteUser:   (id)        => api.delete(`/users/${id}`),
-  uploadProfileImage: (formData) =>
-    api.post('/users/profile-image', formData),   // POST — first upload
-
-  updateProfile: (formData) =>
-    api.put('/users/profile', formData),  
+  uploadProfileImage: (formData) => api.post('/users/profile-image', formData),
+  updateProfile: (formData) => api.put('/users/profile', formData),
 }
 
 // ── Courses ───────────────────────────────────────────────
@@ -175,11 +224,11 @@ export const courseApi = {
 
 // ── Modules ───────────────────────────────────────────────
 export const moduleApi = {
-  create:     (data, instructorId) =>
+  create:      (data, instructorId) =>
     api.post(`/modules?instructorId=${instructorId}`, data),
-  update:     (id, data)    => api.put(`/modules/${id}`, data),
-  delete:     (id)          => api.delete(`/modules/${id}`),
-  getByCourse:(courseId)    => api.get(`/modules/course/${courseId}`),
+  update:      (id, data)    => api.put(`/modules/${id}`, data),
+  delete:      (id)          => api.delete(`/modules/${id}`),
+  getByCourse: (courseId)    => api.get(`/modules/course/${courseId}`),
 }
 
 // ── Lessons ───────────────────────────────────────────────
@@ -200,30 +249,29 @@ export const assignmentApi = {
 
 // ── Submissions ───────────────────────────────────────────
 export const submissionApi = {
-  submit:        (data)          => api.post('/submissions', data),
-  grade:         (id, data)      => api.put(`/submissions/${id}/grade`, data),
-  delete:        (id)            => api.delete(`/submissions/${id}`),
-  mySubmissions: ()              => api.get('/submissions/my'),
-  byAssignment:  (assignmentId)  =>
-    api.get(`/submissions/assignment/${assignmentId}`),
+  submit:        (data)         => api.post('/submissions', data),
+  grade:         (id, data)     => api.put(`/submissions/${id}/grade`, data),
+  delete:        (id)           => api.delete(`/submissions/${id}`),
+  mySubmissions: ()             => api.get('/submissions/my'),
+  byAssignment:  (assignmentId) => api.get(`/submissions/assignment/${assignmentId}`),
 }
 
 // ── Quizzes ───────────────────────────────────────────────
 export const quizApi = {
   // Instructor — module quiz
-  createOrUpdate: (data)      => api.post('/quizzes', data),
-  getForInstructor:(moduleId) => api.get(`/quizzes/module/${moduleId}/instructor`),
-  deleteQuiz:     (quizId)    => api.delete(`/quizzes/${quizId}`),
+  createOrUpdate:    (data)      => api.post('/quizzes', data),
+  getForInstructor:  (moduleId)  => api.get(`/quizzes/module/${moduleId}/instructor`),
+  deleteQuiz:        (quizId)    => api.delete(`/quizzes/${quizId}`),
 
   // Instructor — final quiz
-  createOrUpdateFinal: (data)    => api.post('/quizzes/final', data),
-  getFinalForInstructor:(courseId)=> api.get(`/quizzes/final/course/${courseId}/instructor`),
+  createOrUpdateFinal:    (data)     => api.post('/quizzes/final', data),
+  getFinalForInstructor:  (courseId) => api.get(`/quizzes/final/course/${courseId}/instructor`),
 
   // Student — module quiz
-  getForStudent:  (moduleId) => api.get(`/quizzes/module/${moduleId}`),
+  getForStudent:      (moduleId)  => api.get(`/quizzes/module/${moduleId}`),
 
   // Student — final quiz
-  getFinalForStudent: (courseId) => api.get(`/quizzes/final/course/${courseId}`),
+  getFinalForStudent: (courseId)  => api.get(`/quizzes/final/course/${courseId}`),
 
   // Shared
   submit:         (data)     => api.post('/quizzes/submit', data),
@@ -267,39 +315,34 @@ export const uploadApi = {
   },
 }
 
-// ── Public Landing & Feedback ─────────────────────────────────
+// ── Public Landing & Feedback ─────────────────────────────
 export const publicApi = {
-  instructors:        ()     => api.get('/public/instructors'),
-  submitFeedback:     (data) => api.post('/public/feedback', data),
-  pendingFeedback:    ()     => api.get('/public/feedback/pending'),
-  approveFeedback:    (id)   => api.put(`/public/feedback/${id}/approve`),
-  deleteFeedback:     (id)   => api.delete(`/public/feedback/${id}`),
-  approvedFeedback: () => api.get('/public/feedback/approved'),
+  instructors:      ()     => api.get('/public/instructors'),
+  submitFeedback:   (data) => api.post('/public/feedback', data),
+  pendingFeedback:  ()     => api.get('/public/feedback/pending'),
+  approveFeedback:  (id)   => api.put(`/public/feedback/${id}/approve`),
+  deleteFeedback:   (id)   => api.delete(`/public/feedback/${id}`),
+  approvedFeedback: ()     => api.get('/public/feedback/approved'),
 }
-// ─── Message API ──────────────────────────────────────────────────────────────
-// Replace the existing messageApi block in src/api/services.js with this.
 
+// ── Messaging ─────────────────────────────────────────────
 export const messageApi = {
   // Send a human message (student → instructor or instructor → student)
   sendMessage: (data) => api.post('/messages', data),
 
-  // Ask AI and get reply — Spring AI calls Gemini on the server.
+  // Ask AI — Spring AI calls Gemini on the server and persists both turns.
   // Returns ApiResponse<String>: { success, message, data: "<ai reply text>" }
   askAi: (courseId, content) =>
     api.post('/messages/ai/ask', { courseId, content }),
 
-  // Persist an AI chat message (logging only, no Gemini call)
-  saveAiMessage: (courseId, content) =>
-    api.post('/messages/ai/chat', { courseId, content }),
+  // Get AI chat history for the current student in a course
+  getAiMessages: (courseId) => api.get(`/messages/ai/${courseId}`),
 
   // Get direct conversation between two users in a course
   getDirectMessages: (courseId, otherUserId) =>
     api.get(`/messages/direct/${courseId}/${otherUserId}`),
 
-  // All messages in a course (instructor view)
-  getCourseMessages: (courseId) => api.get(`/messages/course/${courseId}`),
-
-  // Enrolled students for instructor chat
+  // Enrolled students for instructor chat sidebar
   getCourseStudents: (courseId) =>
     api.get(`/messages/course/${courseId}/students`),
 
@@ -308,6 +351,6 @@ export const messageApi = {
     api.get(`/messages/course/${courseId}/instructor`),
 
   // Sidebar course-chat lists
-  getStudentChats: () => api.get('/messages/chats/student'),
+  getStudentChats:    () => api.get('/messages/chats/student'),
   getInstructorChats: () => api.get('/messages/chats/instructor'),
 }

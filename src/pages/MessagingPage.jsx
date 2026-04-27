@@ -1,9 +1,8 @@
-// src/pages/MessagingPage.jsx
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import api from '../api/axios'
+import { messageApi } from '../api/services'
 import {
-  MessageSquare, Bot, User, ChevronLeft, Send,
+  MessageSquare, User, ChevronLeft, Send,
   BookOpen, Loader2, Sparkles, RefreshCw, Search
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -37,7 +36,7 @@ function Avatar({ name, isAI, profileImage, size = 8 }) {
 // ── MessageBubble ─────────────────────────────────────────────────────────────
 
 function MessageBubble({ msg, currentUserId }) {
-  const isOwn = msg.senderId === currentUserId
+  const isOwn = !msg.aiMessage && msg.senderId === currentUserId
   const isAI  = msg.aiMessage
 
   const time = msg.sentAt
@@ -92,24 +91,43 @@ function MessageBubble({ msg, currentUserId }) {
 }
 
 // ── AI Chat Panel ─────────────────────────────────────────────────────────────
-// The AI call is proxied through POST /api/messages/ai/ask (Spring AI → Gemini).
-// This keeps the Gemini API key on the server and persists the conversation.
+// POST /api/messages/ai/ask  — Spring AI calls Gemini, persists both turns.
+// GET  /api/messages/ai/:courseId — loads existing AI chat history on mount.
 
 function AIChatPanel({ course }) {
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      senderId: null,
-      senderName: 'AI Assistant',
-      content: `Hi! 👋 I'm your AI assistant for **${course.courseTitle}**. Ask me anything about the course content, concepts, or if you need help understanding a topic!`,
-      aiMessage: true,
-      sentAt: new Date().toISOString(),
-    }
-  ])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
   const { user } = useAuth()
+  const [messages, setMessages] = useState([])
+  const [input, setInput]       = useState('')
+  const [loading, setLoading]   = useState(true)   // initial history load
+  const [sending, setSending]   = useState(false)
   const bottomRef = useRef(null)
+
+  // Load AI chat history from the server on mount / course change
+  const loadHistory = useCallback(async () => {
+    setLoading(true)
+    try {
+      const { data } = await messageApi.getAiMessages(course.courseId)
+      if (data.length === 0) {
+        // No history — show welcome message
+        setMessages([{
+          id: 'welcome',
+          senderId: null,
+          senderName: 'AI Assistant',
+          content: `Hi! 👋 I'm your AI assistant for **${course.courseTitle}**. Ask me anything about the course content, concepts, or if you need help understanding a topic!`,
+          aiMessage: true,
+          sentAt: new Date().toISOString(),
+        }])
+      } else {
+        setMessages(data)
+      }
+    } catch {
+      toast.error('Failed to load AI chat history')
+    } finally {
+      setLoading(false)
+    }
+  }, [course.courseId, course.courseTitle])
+
+  useEffect(() => { loadHistory() }, [loadHistory])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -117,11 +135,12 @@ function AIChatPanel({ course }) {
 
   const handleSend = async () => {
     const question = input.trim()
-    if (!question || loading) return
+    if (!question || sending) return
 
-    // Optimistically add user message to the chat
+    // Optimistically add the user's message
+    const tempId = `temp-${Date.now()}`
     const userMsg = {
-      id: `u-${Date.now()}`,
+      id: tempId,
       senderId: user.id,
       senderName: user.name,
       content: question,
@@ -130,17 +149,13 @@ function AIChatPanel({ course }) {
     }
     setMessages(prev => [...prev, userMsg])
     setInput('')
-    setLoading(true)
+    setSending(true)
 
     try {
-      // POST /api/messages/ai/ask  → Spring AI calls Gemini, persists both turns,
-      // and returns the AI reply text inside ApiResponse<String>.data
-      const { data } = await api.post('/messages/ai/ask', {
-        courseId: course.courseId,
-        content: question,
-      })
+      // POST /api/messages/ai/ask — backend persists both turns and returns reply
+      const { data } = await messageApi.askAi(course.courseId, question)
 
-      // Backend wraps in ApiResponse: { success, message, data }
+      // ApiResponse<String>: { success, message, data: "<reply text>" }
       const replyText = data?.data ?? data ?? 'Sorry, I could not generate a response.'
 
       const aiMsg = {
@@ -152,15 +167,14 @@ function AIChatPanel({ course }) {
         sentAt: new Date().toISOString(),
       }
       setMessages(prev => [...prev, aiMsg])
-
     } catch (err) {
       const errMsg = err?.response?.data?.message ?? 'AI assistant is currently unavailable'
       toast.error(errMsg)
-      // Remove the optimistic user message on failure
-      setMessages(prev => prev.filter(m => m.id !== userMsg.id))
+      // Roll back the optimistic message and restore input
+      setMessages(prev => prev.filter(m => m.id !== tempId))
       setInput(question)
     } finally {
-      setLoading(false)
+      setSending(false)
     }
   }
 
@@ -183,10 +197,16 @@ function AIChatPanel({ course }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50">
-        {messages.map(msg => (
-          <MessageBubble key={msg.id} msg={msg} currentUserId={user?.id} />
-        ))}
-        {loading && (
+        {loading ? (
+          <div className="flex justify-center items-center h-full">
+            <Loader2 size={24} className="animate-spin text-violet-400" />
+          </div>
+        ) : (
+          messages.map(msg => (
+            <MessageBubble key={msg.id} msg={msg} currentUserId={user?.id} />
+          ))
+        )}
+        {sending && (
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
               <Sparkles size={14} className="text-white" />
@@ -221,10 +241,10 @@ function AIChatPanel({ course }) {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || sending}
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white disabled:opacity-40 transition-all hover:shadow-md hover:scale-105 flex-shrink-0"
           >
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </div>
         <p className="text-xs text-gray-400 mt-1.5 text-center">Shift+Enter for new line · Enter to send</p>
@@ -238,17 +258,15 @@ function AIChatPanel({ course }) {
 function HumanChatPanel({ course, otherUser, role }) {
   const { user } = useAuth()
   const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sending, setSending] = useState(false)
+  const [input, setInput]       = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [sending, setSending]   = useState(false)
   const bottomRef = useRef(null)
 
   const fetchMessages = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await api.get(
-        `/messages/direct/${course.courseId}/${otherUser.id}`
-      )
+      const { data } = await messageApi.getDirectMessages(course.courseId, otherUser.id)
       setMessages(data)
     } catch {
       toast.error('Failed to load messages')
@@ -269,7 +287,7 @@ function HumanChatPanel({ course, otherUser, role }) {
 
     setSending(true)
     try {
-      const { data } = await api.post('/messages', {
+      const { data } = await messageApi.sendMessage({
         receiverId: otherUser.id,
         courseId: course.courseId,
         content,
@@ -277,8 +295,7 @@ function HumanChatPanel({ course, otherUser, role }) {
       setMessages(prev => [...prev, data])
       setInput('')
     } catch (err) {
-      const errMsg = err?.response?.data?.message ?? 'Failed to send message'
-      toast.error(errMsg)
+      toast.error(err?.response?.data?.message ?? 'Failed to send message')
     } finally {
       setSending(false)
     }
@@ -291,7 +308,9 @@ function HumanChatPanel({ course, otherUser, role }) {
         <Avatar name={otherUser.name} profileImage={otherUser.profileImage} size={9} />
         <div>
           <p className="font-semibold text-gray-800 text-sm">{otherUser.name}</p>
-          <p className="text-xs text-gray-400">{role === 'STUDENT' ? 'Instructor' : 'Student'} · {course.courseTitle}</p>
+          <p className="text-xs text-gray-400">
+            {role === 'STUDENT' ? 'Instructor' : 'Student'} · {course.courseTitle}
+          </p>
         </div>
         <button
           onClick={fetchMessages}
@@ -355,13 +374,13 @@ function HumanChatPanel({ course, otherUser, role }) {
 
 function InstructorStudentList({ course, onSelect, selected }) {
   const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [search, setSearch] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [search, setSearch]     = useState('')
 
   useEffect(() => {
     if (!course) return
     setLoading(true)
-    api.get(`/messages/course/${course.courseId}/students`)
+    messageApi.getCourseStudents(course.courseId)
       .then(r => setStudents(r.data))
       .catch(() => toast.error('Failed to load students'))
       .finally(() => setLoading(false))
@@ -402,9 +421,7 @@ function InstructorStudentList({ course, onSelect, selected }) {
               }`}
             >
               <Avatar name={s.name} profileImage={s.profileImage} size={8} />
-              <div>
-                <p className="text-sm font-medium text-gray-700">{s.name}</p>
-              </div>
+              <p className="text-sm font-medium text-gray-700">{s.name}</p>
             </button>
           ))
         )}
@@ -452,8 +469,8 @@ function ChatTypeTabs({ active, onChange }) {
   return (
     <div className="flex border-b border-gray-100 bg-white px-4 pt-3 gap-1">
       {[
-        { key: 'ai', label: 'AI Assistant', icon: Sparkles },
-        { key: 'instructor', label: 'Instructor', icon: User },
+        { key: 'ai',         label: 'AI Assistant', icon: Sparkles },
+        { key: 'instructor', label: 'Instructor',   icon: User },
       ].map(({ key, label, icon: Icon }) => (
         <button
           key={key}
@@ -475,20 +492,20 @@ function ChatTypeTabs({ active, onChange }) {
 // ── Main MessagingPage ────────────────────────────────────────────────────────
 
 export default function MessagingPage() {
-  const { user, role } = useAuth()
-  const [chats, setChats] = useState([])
-  const [loadingChats, setLoadingChats] = useState(true)
-  const [activeChat, setActiveChat] = useState(null)
-  const [chatType, setChatType] = useState('ai')       // 'ai' | 'instructor'
+  const { role } = useAuth()
+  const [chats, setChats]                   = useState([])
+  const [loadingChats, setLoadingChats]     = useState(true)
+  const [activeChat, setActiveChat]         = useState(null)
+  const [chatType, setChatType]             = useState('ai')        // 'ai' | 'instructor'
   const [selectedStudent, setSelectedStudent] = useState(null)
-  const [showList, setShowList] = useState(true)        // Mobile toggle
+  const [showList, setShowList]             = useState(true)         // mobile toggle
 
   useEffect(() => {
-    const endpoint = role === 'STUDENT'
-      ? '/messages/chats/student'
-      : '/messages/chats/instructor'
+    const fetch = role === 'STUDENT'
+      ? messageApi.getStudentChats
+      : messageApi.getInstructorChats
 
-    api.get(endpoint)
+    fetch()
       .then(r => {
         setChats(r.data)
         if (r.data.length > 0) setActiveChat(r.data[0])
@@ -545,7 +562,7 @@ export default function MessagingPage() {
       {activeChat && (
         <div className={`flex-1 flex flex-col min-w-0 ${!showList ? 'flex' : 'hidden'} md:flex`}>
 
-          {/* Mobile back */}
+          {/* Mobile back button */}
           <div className="md:hidden flex items-center px-4 py-2 border-b border-gray-100">
             <button
               onClick={() => setShowList(true)}
@@ -555,12 +572,12 @@ export default function MessagingPage() {
             </button>
           </div>
 
-          {/* Student: chat type tabs */}
+          {/* Student: AI / Instructor tab switcher */}
           {role === 'STUDENT' && (
             <ChatTypeTabs active={chatType} onChange={setChatType} />
           )}
 
-          {/* Instructor: student selection + chat */}
+          {/* Instructor: pick a student then chat */}
           {role === 'INSTRUCTOR' ? (
             <div className="flex flex-1 min-h-0">
               <div className="w-52 flex-shrink-0">
@@ -586,7 +603,7 @@ export default function MessagingPage() {
               </div>
             </div>
           ) : (
-            // Student: AI tab or instructor tab
+            // Student: AI tab or Instructor tab
             <div className="flex-1 min-h-0">
               {chatType === 'ai' ? (
                 <AIChatPanel key={`ai-${activeChat.courseId}`} course={activeChat} />

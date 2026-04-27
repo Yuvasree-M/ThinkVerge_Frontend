@@ -1,3 +1,4 @@
+
 // import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 // import { useQueryClient } from '@tanstack/react-query'
 // import { authApi, userApi } from '../api/services'
@@ -11,7 +12,6 @@
 //   const [loading, setLoading] = useState(true)
 //   const queryClient = useQueryClient()
 
-//   // Restore session on app load from localStorage token
 //   const refreshUser = useCallback(async () => {
 //     const token = localStorage.getItem('jwt')
 //     if (!token) {
@@ -43,8 +43,6 @@
 //       const loggedInUser = data.user ?? { email: credentials.email, role: data.role, name: data.name }
 //       setUser(loggedInUser)
 
-//       // Prefetch dashboard data in the background while the redirect animation plays.
-//       // By the time the dashboard mounts, data is already cached — no spinner.
 //       const role = loggedInUser.role?.toUpperCase()
 //       if (role === 'STUDENT') {
 //         queryClient.prefetchQuery({
@@ -87,8 +85,6 @@
 //   const logout = useCallback(async () => {
 //     try { await authApi.logout() } catch {}
 //     localStorage.removeItem('jwt')
-//     // Clear all cached query data on logout so stale data
-//     // isn't shown if a different user logs in on the same device
 //     queryClient.clear()
 //     setUser(null)
 //     toast.success('Logged out successfully')
@@ -97,7 +93,8 @@
 //   const role = user?.role?.toUpperCase()
 
 //   return (
-//     <AuthContext.Provider value={{ user, role, loading, login, register, logout, refreshUser }}>
+//     // ✅ setUser added to context value
+//     <AuthContext.Provider value={{ user, setUser, role, loading, login, register, logout, refreshUser }}>
 //       {children}
 //     </AuthContext.Provider>
 //   )
@@ -118,10 +115,11 @@ import toast from 'react-hot-toast'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
-  const queryClient = useQueryClient()
+  const queryClient           = useQueryClient()
 
+  // Restore session on app load from localStorage token
   const refreshUser = useCallback(async () => {
     const token = localStorage.getItem('jwt')
     if (!token) {
@@ -153,6 +151,7 @@ export function AuthProvider({ children }) {
       const loggedInUser = data.user ?? { email: credentials.email, role: data.role, name: data.name }
       setUser(loggedInUser)
 
+      // Prefetch dashboard data in the background while redirect animation plays
       const role = loggedInUser.role?.toUpperCase()
       if (role === 'STUDENT') {
         queryClient.prefetchQuery({
@@ -203,7 +202,6 @@ export function AuthProvider({ children }) {
   const role = user?.role?.toUpperCase()
 
   return (
-    // ✅ setUser added to context value
     <AuthContext.Provider value={{ user, setUser, role, loading, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
