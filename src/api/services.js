@@ -325,22 +325,64 @@ export const publicApi = {
   approvedFeedback: ()     => api.get('/public/feedback/approved'),
 }
 
+// // ── Messaging ─────────────────────────────────────────────
+// export const messageApi = {
+//   // Send a human message (student → instructor or instructor → student)
+//   sendMessage: (data) => api.post('/messages', data),
+
+//   // Ask AI — Spring AI calls Gemini on the server and persists both turns.
+//   // Returns ApiResponse<String>: { success, message, data: "<ai reply text>" }
+//   askAi: (courseId, content) =>
+//     api.post('/messages/ai/ask', { courseId, content }),
+
+//   // Get AI chat history for the current student in a course
+//   getAiMessages: (courseId) => api.get(`/messages/ai/${courseId}`),
+
+//   // Get direct conversation between two users in a course
+//   getDirectMessages: (courseId, otherUserId) =>
+//     api.get(`/messages/direct/${courseId}/${otherUserId}`),
+
+//   // Enrolled students for instructor chat sidebar
+//   getCourseStudents: (courseId) =>
+//     api.get(`/messages/course/${courseId}/students`),
+
+//   // Get instructor info (for student chat sidebar)
+//   getCourseInstructor: (courseId) =>
+//     api.get(`/messages/course/${courseId}/instructor`),
+
+//   // Sidebar course-chat lists
+//   getStudentChats:    () => api.get('/messages/chats/student'),
+//   getInstructorChats: () => api.get('/messages/chats/instructor'),
+// }
+
+
 // ── Messaging ─────────────────────────────────────────────
+// Add this block to your existing services.js, replacing the old messageApi object.
+
 export const messageApi = {
   // Send a human message (student → instructor or instructor → student)
   sendMessage: (data) => api.post('/messages', data),
 
-  // Ask AI — Spring AI calls Gemini on the server and persists both turns.
-  // Returns ApiResponse<String>: { success, message, data: "<ai reply text>" }
+  // Ask AI — persists question (isAiMessage=true) + reply, returns ApiResponse<String>
   askAi: (courseId, content) =>
     api.post('/messages/ai/ask', { courseId, content }),
 
   // Get AI chat history for the current student in a course
   getAiMessages: (courseId) => api.get(`/messages/ai/${courseId}`),
 
+  // Clear all AI chat messages for current user in a course
+  clearAiChat: (courseId) => api.delete(`/messages/ai/clear/${courseId}`),
+
   // Get direct conversation between two users in a course
   getDirectMessages: (courseId, otherUserId) =>
     api.get(`/messages/direct/${courseId}/${otherUserId}`),
+
+  // Clear all direct messages between current user and another user in a course
+  clearDirectChat: (courseId, otherUserId) =>
+    api.delete(`/messages/direct/clear/${courseId}/${otherUserId}`),
+
+  // Delete a single message by ID
+  deleteMessage: (messageId) => api.delete(`/messages/${messageId}`),
 
   // Enrolled students for instructor chat sidebar
   getCourseStudents: (courseId) =>

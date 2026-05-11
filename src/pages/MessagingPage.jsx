@@ -1,11 +1,705 @@
+// import { useState, useEffect, useRef, useCallback } from 'react'
+// import { useAuth } from '../contexts/AuthContext'
+// import { messageApi } from '../api/services'
+// import {
+//   MessageSquare, User, ChevronLeft, Send,
+//   BookOpen, Loader2, Sparkles, RefreshCw, Search
+// } from 'lucide-react'
+// import toast from 'react-hot-toast'
+
+// // ── Avatar ────────────────────────────────────────────────────────────────────
+
+// function Avatar({ name, isAI, profileImage, size = 8 }) {
+//   const dim = `w-${size} h-${size}`
+//   if (isAI) {
+//     return (
+//       <div className={`${dim} rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md`}>
+//         <Sparkles size={size === 8 ? 16 : 13} className="text-white" />
+//       </div>
+//     )
+//   }
+//   if (profileImage) {
+//     return (
+//       <img
+//         src={profileImage}
+//         alt={name}
+//         className={`${dim} rounded-full object-cover flex-shrink-0 shadow-sm`}
+//       />
+//     )
+//   }
+//   return (
+//     <div className={`${dim} rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0 shadow-sm`}>
+//       <span className="text-white text-xs font-bold">{name?.[0]?.toUpperCase() ?? '?'}</span>
+//     </div>
+//   )
+// }
+
+// // ── MessageBubble ─────────────────────────────────────────────────────────────
+
+// function MessageBubble({ msg, currentUserId }) {
+//   const isOwn = !msg.aiMessage && msg.senderId === currentUserId
+//   const isAI  = msg.aiMessage
+
+//   const time = msg.sentAt
+//     ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+//     : ''
+
+//   // ── AI message ──────────────────────────────────────────────────────────────
+//   if (isAI) {
+//     return (
+//       <div className="flex items-start gap-3 w-full min-w-0">
+//         {/* Avatar pinned to top of bubble group */}
+//         <div className="flex-shrink-0 pt-0.5">
+//           <Avatar isAI size={8} />
+//         </div>
+//         <div className="flex flex-col items-start max-w-[70%] min-w-0">
+//           <div className="flex items-center gap-2 mb-1">
+//             <span className="text-xs font-semibold text-violet-600">AI Assistant</span>
+//             <span className="text-xs text-gray-400">{time}</span>
+//           </div>
+//           <div className="break-words whitespace-pre-wrap bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap shadow-sm">
+//             {msg.content}
+//           </div>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   // ── Own message ─────────────────────────────────────────────────────────────
+//   if (isOwn) {
+//     return (
+//       <div className="flex items-end gap-3 w-full flex-row-reverse">
+//         {/* Avatar pinned to bottom of bubble */}
+//         <div className="flex-shrink-0 pb-0.5">
+//           <Avatar name={msg.senderName} profileImage={msg.senderProfileImage} size={7} />
+//         </div>
+//         <div className="flex flex-col items-end max-w-[70%] min-w-0">
+//           <span className="text-xs text-gray-400 mb-1">{time}</span>
+//           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
+//             {msg.content}
+//           </div>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   // ── Other user's message ────────────────────────────────────────────────────
+//   return (
+//     <div className="flex items-start gap-3 w-full min-w-0">
+//       <div className="flex-shrink-0 pt-0.5">
+//         <Avatar name={msg.senderName} profileImage={msg.senderProfileImage} size={8} />
+//       </div>
+//       <div className="flex flex-col items-start max-w-[70%] min-w-0">
+//         <div className="flex items-center gap-2 mb-1">
+//           <span className="text-xs font-semibold text-gray-600">{msg.senderName}</span>
+//           <span className="text-xs text-gray-400">{time}</span>
+//         </div>
+//         <div className="break-words whitespace-pre-wrap bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 leading-relaxed shadow-sm">
+//           {msg.content}
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+// // ── Typing indicator ──────────────────────────────────────────────────────────
+
+// function TypingIndicator() {
+//   return (
+//     <div className="flex items-start gap-3 w-full min-w-0">
+//       <div className="flex-shrink-0 pt-0.5">
+//         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
+//           <Sparkles size={13} className="text-white" />
+//         </div>
+//       </div>
+//       <div className="flex flex-col items-start">
+//         <span className="text-xs font-semibold text-violet-600 mb-1">AI Assistant</span>
+//         <div className="bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+//           <div className="flex gap-1.5 items-center h-4">
+//             <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+//             <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+//             <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   )
+// }
+
+// // ── Shared message input ──────────────────────────────────────────────────────
+
+// function MessageInput({ value, onChange, onSend, sending, placeholder, variant = 'blue' }) {
+//   const focusClass  = variant === 'violet'
+//     ? 'focus-within:border-violet-400 focus-within:bg-white'
+//     : 'focus-within:border-blue-400 focus-within:bg-white'
+//   const btnClass = variant === 'violet'
+//     ? 'bg-gradient-to-br from-violet-500 to-indigo-600'
+//     : 'bg-gradient-to-br from-blue-500 to-blue-700'
+
+//   return (
+//     <div className="px-4 py-3 border-t border-gray-100 bg-white">
+//       <div className={`flex gap-2 items-end bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2 transition-all ${focusClass}`}>
+//         <textarea
+//           value={value}
+//           onChange={e => onChange(e.target.value)}
+//           onKeyDown={e => {
+//             if (e.key === 'Enter' && !e.shiftKey) {
+//               e.preventDefault()
+//               onSend()
+//             }
+//           }}
+//           placeholder={placeholder}
+//           rows={1}
+//           className="flex-1 bg-transparent resize-none text-sm text-gray-700 placeholder-gray-400 outline-none max-h-32 py-1 leading-relaxed"
+//         />
+//         <button
+//           onClick={onSend}
+//           disabled={!value.trim() || sending}
+//           className={`w-8 h-8 flex items-center justify-center rounded-xl ${btnClass} text-white disabled:opacity-40 transition-all hover:shadow-md hover:scale-105 flex-shrink-0`}
+//         >
+//           {sending
+//             ? <Loader2 size={14} className="animate-spin" />
+//             : <Send size={14} />
+//           }
+//         </button>
+//       </div>
+//       <p className="text-xs text-gray-400 mt-1.5 text-center">Shift+Enter for new line · Enter to send</p>
+//     </div>
+//   )
+// }
+
+// // ── AI Chat Panel ─────────────────────────────────────────────────────────────
+
+// function AIChatPanel({ course }) {
+//   const { user } = useAuth()
+//   const [messages, setMessages] = useState([])
+//   const [input, setInput]       = useState('')
+//   const [loading, setLoading]   = useState(true)
+//   const [sending, setSending]   = useState(false)
+//   const bottomRef = useRef(null)
+
+//   const loadHistory = useCallback(async () => {
+//     setLoading(true)
+//     try {
+//       const { data } = await messageApi.getAiMessages(course.courseId)
+//       if (data.length === 0) {
+//         setMessages([{
+//           id: 'welcome',
+//           senderId: null,
+//           senderName: 'AI Assistant',
+//           content: `Hi! 👋 I'm your AI assistant for ${course.courseTitle}. Ask me anything about the course content, concepts, or if you need help understanding a topic!`,
+//           aiMessage: true,
+//           sentAt: new Date().toISOString(),
+//         }])
+//       } else {
+//         setMessages(data)
+//       }
+//     } catch {
+//       toast.error('Failed to load AI chat history')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }, [course.courseId, course.courseTitle])
+
+//   useEffect(() => { loadHistory() }, [loadHistory])
+
+//   useEffect(() => {
+//     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+//   }, [messages, sending])
+
+//   const handleSend = async () => {
+//     const question = input.trim()
+//     if (!question || sending) return
+
+//     const tempId = `temp-${Date.now()}`
+//     const userMsg = {
+//       id: tempId,
+//       senderId: user.id,
+//       senderName: user.name,
+//       senderProfileImage: user.profileImage,
+//       content: question,
+//       aiMessage: false,
+//       sentAt: new Date().toISOString(),
+//     }
+//     setMessages(prev => [...prev, userMsg])
+//     setInput('')
+//     setSending(true)
+
+//     try {
+//       const { data } = await messageApi.askAi(course.courseId, question)
+//       const replyText = data?.data ?? data ?? 'Sorry, I could not generate a response.'
+//       const aiMsg = {
+//         id: `ai-${Date.now()}`,
+//         senderId: null,
+//         senderName: 'AI Assistant',
+//         content: replyText,
+//         aiMessage: true,
+//         sentAt: new Date().toISOString(),
+//       }
+//       setMessages(prev => [...prev, aiMsg])
+//     } catch (err) {
+//       const errMsg = err?.response?.data?.message ?? 'AI assistant is currently unavailable'
+//       toast.error(errMsg)
+//       setMessages(prev => prev.filter(m => m.id !== tempId))
+//       setInput(question)
+//     } finally {
+//       setSending(false)
+//     }
+//   }
+
+//   return (
+//     <div className="flex flex-col h-full">
+//       {/* Header */}
+//       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
+//         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow flex-shrink-0">
+//           <Sparkles size={16} className="text-white" />
+//         </div>
+//         <div className="min-w-0">
+//           <p className="font-semibold text-gray-800 text-sm">AI Course Assistant</p>
+//           <p className="text-xs text-violet-500 truncate">{course.courseTitle}</p>
+//         </div>
+//         <span className="ml-auto flex items-center gap-1.5 text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full font-medium flex-shrink-0">
+//           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+//           Online
+//         </span>
+//       </div>
+
+//       {/* Messages */}
+//       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50 min-h-0">
+//         {loading ? (
+//           <div className="flex justify-center items-center h-full">
+//             <Loader2 size={24} className="animate-spin text-violet-400" />
+//           </div>
+//         ) : (
+//           messages.map(msg => (
+//             <MessageBubble key={msg.id} msg={msg} currentUserId={user?.id} />
+//           ))
+//         )}
+//         {sending && <TypingIndicator />}
+//         <div ref={bottomRef} />
+//       </div>
+
+//       {/* Input */}
+//       <div className="flex-shrink-0">
+//         <MessageInput
+//           value={input}
+//           onChange={setInput}
+//           onSend={handleSend}
+//           sending={sending}
+//           placeholder="Ask anything about the course..."
+//           variant="violet"
+//         />
+//       </div>
+//     </div>
+//   )
+// }
+
+// // ── Human Chat Panel (student ↔ instructor) ───────────────────────────────────
+
+// function HumanChatPanel({ course, otherUser, role }) {
+//   const { user } = useAuth()
+//   const [messages, setMessages] = useState([])
+//   const [input, setInput]       = useState('')
+//   const [loading, setLoading]   = useState(false)
+//   const [sending, setSending]   = useState(false)
+//   const bottomRef = useRef(null)
+
+//   const fetchMessages = useCallback(async () => {
+//     setLoading(true)
+//     try {
+//       const { data } = await messageApi.getDirectMessages(course.courseId, otherUser.id)
+//       setMessages(data)
+//     } catch {
+//       toast.error('Failed to load messages')
+//     } finally {
+//       setLoading(false)
+//     }
+//   }, [course.courseId, otherUser.id])
+
+//   useEffect(() => { fetchMessages() }, [fetchMessages])
+
+//   useEffect(() => {
+//     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+//   }, [messages])
+
+//   const handleSend = async () => {
+//     const content = input.trim()
+//     if (!content || sending) return
+
+//     setSending(true)
+//     try {
+//       const { data } = await messageApi.sendMessage({
+//         receiverId: otherUser.id,
+//         courseId: course.courseId,
+//         content,
+//       })
+//       setMessages(prev => [...prev, data])
+//       setInput('')
+//     } catch (err) {
+//       toast.error(err?.response?.data?.message ?? 'Failed to send message')
+//     } finally {
+//       setSending(false)
+//     }
+//   }
+
+//   return (
+//     <div className="flex flex-col h-full">
+//       {/* Header */}
+//       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-white flex-shrink-0">
+//         <Avatar name={otherUser.name} profileImage={otherUser.profileImage} size={9} />
+//         <div className="min-w-0">
+//           <p className="font-semibold text-gray-800 text-sm">{otherUser.name}</p>
+//           <p className="text-xs text-gray-400 truncate">
+//             {role === 'STUDENT' ? 'Instructor' : 'Student'} · {course.courseTitle}
+//           </p>
+//         </div>
+//         <button
+//           onClick={fetchMessages}
+//           className="ml-auto p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition flex-shrink-0"
+//           title="Refresh messages"
+//         >
+//           <RefreshCw size={15} />
+//         </button>
+//       </div>
+
+//       {/* Messages */}
+//       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50 min-h-0">
+//         {loading ? (
+//           <div className="flex justify-center items-center h-full">
+//             <Loader2 size={24} className="animate-spin text-blue-400" />
+//           </div>
+//         ) : messages.length === 0 ? (
+//           <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
+//             <MessageSquare size={32} className="opacity-30" />
+//             <p className="text-sm">No messages yet. Start the conversation!</p>
+//           </div>
+//         ) : (
+//           messages.map(msg => (
+//             <MessageBubble key={msg.id} msg={msg} currentUserId={user?.id} />
+//           ))
+//         )}
+//         <div ref={bottomRef} />
+//       </div>
+
+//       {/* Input */}
+//       <div className="flex-shrink-0">
+//         <MessageInput
+//           value={input}
+//           onChange={setInput}
+//           onSend={handleSend}
+//           sending={sending}
+//           placeholder={`Message ${otherUser.name}...`}
+//           variant="blue"
+//         />
+//       </div>
+//     </div>
+//   )
+// }
+
+// // ── Instructor: student selector within a course ──────────────────────────────
+
+// function InstructorStudentList({ course, onSelect, selected }) {
+//   const [students, setStudents] = useState([])
+//   const [loading, setLoading]   = useState(false)
+//   const [search, setSearch]     = useState('')
+
+//   useEffect(() => {
+//     if (!course) return
+//     setLoading(true)
+//     messageApi.getCourseStudents(course.courseId)
+//       .then(r => setStudents(r.data))
+//       .catch(() => toast.error('Failed to load students'))
+//       .finally(() => setLoading(false))
+//   }, [course?.courseId])
+
+//   const filtered = students.filter(s =>
+//     s.name.toLowerCase().includes(search.toLowerCase())
+//   )
+
+//   return (
+//     <div className="flex flex-col h-full border-r border-gray-100">
+//       <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+//         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Students</p>
+//         <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
+//           <Search size={13} className="text-gray-400 flex-shrink-0" />
+//           <input
+//             value={search}
+//             onChange={e => setSearch(e.target.value)}
+//             placeholder="Search students..."
+//             className="bg-transparent text-xs outline-none flex-1 text-gray-600 placeholder-gray-400"
+//           />
+//         </div>
+//       </div>
+//       <div className="flex-1 overflow-y-auto min-h-0">
+//         {loading ? (
+//           <div className="flex justify-center py-8">
+//             <Loader2 size={20} className="animate-spin text-gray-400" />
+//           </div>
+//         ) : filtered.length === 0 ? (
+//           <p className="text-xs text-gray-400 text-center py-6">No students enrolled</p>
+//         ) : (
+//           filtered.map(s => (
+//             <button
+//               key={s.id}
+//               onClick={() => onSelect(s)}
+//               className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-50 ${
+//                 selected?.id === s.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+//               }`}
+//             >
+//               <Avatar name={s.name} profileImage={s.profileImage} size={8} />
+//               <p className="text-sm font-medium text-gray-700 truncate">{s.name}</p>
+//             </button>
+//           ))
+//         )}
+//       </div>
+//     </div>
+//   )
+// }
+
+// // ── Sidebar: course list ──────────────────────────────────────────────────────
+
+// function CourseSidebar({ chats, activeChat, onSelect, role }) {
+//   return (
+//     <div className="flex flex-col h-full border-r border-gray-100 w-64 flex-shrink-0">
+//       <div className="px-4 py-4 border-b border-gray-100 flex-shrink-0">
+//         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Courses</p>
+//       </div>
+//       <div className="flex-1 overflow-y-auto min-h-0">
+//         {chats.map(chat => (
+//           <button
+//             key={chat.courseId}
+//             onClick={() => onSelect(chat)}
+//             className={`w-full flex items-start gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition border-b border-gray-50 ${
+//               activeChat?.courseId === chat.courseId
+//                 ? 'bg-blue-50 border-r-2 border-blue-500'
+//                 : ''
+//             }`}
+//           >
+//             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+//               <BookOpen size={14} className="text-white" />
+//             </div>
+//             <div className="flex-1 min-w-0">
+//               <p className="text-sm font-medium text-gray-800 truncate">{chat.courseTitle}</p>
+//               {role === 'STUDENT' && (
+//                 <p className="text-xs text-gray-400 truncate">by {chat.instructorName}</p>
+//               )}
+//             </div>
+//           </button>
+//         ))}
+//       </div>
+//     </div>
+//   )
+// }
+
+// // ── Chat type tabs (for students) ─────────────────────────────────────────────
+
+// function ChatTypeTabs({ active, onChange }) {
+//   return (
+//     <div className="flex border-b border-gray-100 bg-white px-4 pt-3 gap-1 flex-shrink-0">
+//       {[
+//         { key: 'ai',         label: 'AI Assistant', icon: Sparkles },
+//         { key: 'instructor', label: 'Instructor',   icon: User },
+//       ].map(({ key, label, icon: Icon }) => (
+//         <button
+//           key={key}
+//           onClick={() => onChange(key)}
+//           className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-all ${
+//             active === key
+//               ? 'border-blue-500 text-blue-600 bg-blue-50'
+//               : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+//           }`}
+//         >
+//           <Icon size={14} />
+//           {label}
+//         </button>
+//       ))}
+//     </div>
+//   )
+// }
+
+// // ── Main MessagingPage ────────────────────────────────────────────────────────
+
+// export default function MessagingPage() {
+//   const { role } = useAuth()
+//   const [chats, setChats]                     = useState([])
+//   const [loadingChats, setLoadingChats]       = useState(true)
+//   const [activeChat, setActiveChat]           = useState(null)
+//   const [chatType, setChatType]               = useState('ai')      // 'ai' | 'instructor'
+//   const [selectedStudent, setSelectedStudent] = useState(null)
+//   const [showList, setShowList]               = useState(true)       // mobile toggle
+
+//   useEffect(() => {
+//     const fetchFn = role === 'STUDENT'
+//       ? messageApi.getStudentChats
+//       : messageApi.getInstructorChats
+
+//     fetchFn()
+//       .then(r => {
+//         setChats(r.data)
+//         if (r.data.length > 0) setActiveChat(r.data[0])
+//       })
+//       .catch(() => toast.error('Failed to load chats'))
+//       .finally(() => setLoadingChats(false))
+//   }, [role])
+
+//   const handleCourseSelect = (chat) => {
+//     setActiveChat(chat)
+//     setSelectedStudent(null)
+//     setChatType('ai')
+//     setShowList(false)
+//   }
+
+//   if (loadingChats) {
+//     return (
+//       <div className="flex justify-center items-center h-64">
+//         <Loader2 size={24} className="animate-spin text-blue-400" />
+//       </div>
+//     )
+//   }
+
+//   if (chats.length === 0) {
+//     return (
+//       <div className="flex flex-col items-center justify-center h-64 gap-4 text-gray-400">
+//         <MessageSquare size={40} className="opacity-25" />
+//         <div className="text-center">
+//           <p className="font-semibold text-gray-600">No courses yet</p>
+//           <p className="text-sm mt-1">
+//             {role === 'STUDENT'
+//               ? 'Enroll in a course to start chatting with your instructor or AI assistant.'
+//               : 'Create a course to start receiving student messages.'}
+//           </p>
+//         </div>
+//       </div>
+//     )
+//   }
+
+//   return (
+//     <div className="flex h-[calc(100vh-64px)] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+//       {/* ── Course List Sidebar ──────────────────────────────────────────── */}
+//       <div className={`${showList ? 'flex' : 'hidden'} md:flex flex-shrink-0`}>
+//         <CourseSidebar
+//           chats={chats}
+//           activeChat={activeChat}
+//           onSelect={handleCourseSelect}
+//           role={role}
+//         />
+//       </div>
+
+//       {/* ── Main Chat Area ───────────────────────────────────────────────── */}
+//       {activeChat && (
+//         <div className={`flex-1 flex flex-col min-w-0 min-h-0 ${!showList ? 'flex' : 'hidden'} md:flex`}>
+
+//           {/* Mobile back button */}
+//           <div className="md:hidden flex items-center px-4 py-2 border-b border-gray-100 flex-shrink-0">
+//             <button
+//               onClick={() => setShowList(true)}
+//               className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+//             >
+//               <ChevronLeft size={16} /> Courses
+//             </button>
+//           </div>
+
+//           {/* ── Student view ──────────────────────────────────────────────── */}
+//           {role === 'STUDENT' && (
+//             <>
+//               <ChatTypeTabs active={chatType} onChange={setChatType} />
+//               <div className="flex-1 min-h-0 overflow-hidden">
+//                 {chatType === 'ai' ? (
+//                   <AIChatPanel key={`ai-${activeChat.courseId}`} course={activeChat} />
+//                 ) : (
+//                   <HumanChatPanel
+//                     key={`human-${activeChat.courseId}`}
+//                     course={activeChat}
+//                     otherUser={{
+//                       id:           activeChat.instructorId,
+//                       name:         activeChat.instructorName,
+//                       profileImage: activeChat.instructorProfileImage,
+//                     }}
+//                     role={role}
+//                   />
+//                 )}
+//               </div>
+//             </>
+//           )}
+
+//           {/* ── Instructor view ───────────────────────────────────────────── */}
+//           {role === 'INSTRUCTOR' && (
+//             <div className="flex flex-1 min-h-0 overflow-hidden">
+//               <div className="w-56 flex-shrink-0 flex flex-col min-h-0">
+//                 <InstructorStudentList
+//                   course={activeChat}
+//                   onSelect={setSelectedStudent}
+//                   selected={selectedStudent}
+//                 />
+//               </div>
+//               <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+//                 {selectedStudent ? (
+//                   <HumanChatPanel
+//                     key={`inst-${activeChat.courseId}-${selectedStudent.id}`}
+//                     course={activeChat}
+//                     otherUser={selectedStudent}
+//                     role={role}
+//                   />
+//                 ) : (
+//                   <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
+//                     <User size={32} className="opacity-25" />
+//                     <p className="text-sm">Select a student to start chatting</p>
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+//           )}
+//         </div>
+//       )}
+//     </div>
+//   )
+// }
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { messageApi } from '../api/services'
 import {
   MessageSquare, User, ChevronLeft, Send,
-  BookOpen, Loader2, Sparkles, RefreshCw, Search
+  BookOpen, Loader2, Sparkles, RefreshCw, Search,
+  Trash2, X, AlertTriangle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+// ── Confirm Dialog ────────────────────────────────────────────────────────────
+
+function ConfirmDialog({ open, title, message, onConfirm, onCancel, danger = true }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-80 mx-4">
+        <div className="flex items-center gap-3 mb-3">
+          {danger && <AlertTriangle size={20} className="text-red-500 flex-shrink-0" />}
+          <p className="font-semibold text-gray-800">{title}</p>
+        </div>
+        <p className="text-sm text-gray-500 mb-5">{message}</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm text-white rounded-xl transition ${
+              danger
+                ? 'bg-red-500 hover:bg-red-600'
+                : 'bg-blue-500 hover:bg-blue-600'
+            }`}
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
@@ -35,20 +729,29 @@ function Avatar({ name, isAI, profileImage, size = 8 }) {
 }
 
 // ── MessageBubble ─────────────────────────────────────────────────────────────
+// AI chat: sender=student (question) has senderId set; receiver=student (reply) has senderId=null
+// We distinguish AI *reply* by aiMessage===true AND senderId===null.
+// Student's question in AI chat: aiMessage===true AND senderId===currentUserId.
+//
+// onDelete is ONLY called for messages the current user owns:
+//   • own sent messages (isOwn)
+//   • AI replies addressed to the current user (isAIReply — receiver = currentUser)
+// It is NEVER shown on messages sent by the other party.
 
-function MessageBubble({ msg, currentUserId }) {
-  const isOwn = !msg.aiMessage && msg.senderId === currentUserId
-  const isAI  = msg.aiMessage
+function MessageBubble({ msg, currentUserId, onDelete }) {
+  // Use == (not ===) to safely handle number vs string coercion from JSON
+  const isAIReply = msg.aiMessage && msg.senderId == null
+  // eslint-disable-next-line eqeqeq
+  const isOwn     = !isAIReply && msg.senderId == currentUserId
 
   const time = msg.sentAt
     ? new Date(msg.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : ''
 
-  // ── AI message ──────────────────────────────────────────────────────────────
-  if (isAI) {
+  // ── AI reply bubble ──────────────────────────────────────────────────────
+  if (isAIReply) {
     return (
-      <div className="flex items-start gap-3 w-full min-w-0">
-        {/* Avatar pinned to top of bubble group */}
+      <div className="flex items-start gap-3 w-full min-w-0 group">
         <div className="flex-shrink-0 pt-0.5">
           <Avatar isAI size={8} />
         </div>
@@ -57,33 +760,54 @@ function MessageBubble({ msg, currentUserId }) {
             <span className="text-xs font-semibold text-violet-600">AI Assistant</span>
             <span className="text-xs text-gray-400">{time}</span>
           </div>
-          <div className="break-words whitespace-pre-wrap bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap shadow-sm">
-            {msg.content}
+          <div className="relative">
+            <div className="break-words whitespace-pre-wrap bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-700 leading-relaxed shadow-sm">
+              {msg.content}
+            </div>
+            {onDelete && (
+              <button
+                onClick={() => onDelete(msg)}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition hover:bg-red-600"
+                title="Delete message"
+              >
+                <X size={10} />
+              </button>
+            )}
           </div>
         </div>
       </div>
     )
   }
 
-  // ── Own message ─────────────────────────────────────────────────────────────
+  // ── Own message (right-aligned) ─────────────────────────────────────────
   if (isOwn) {
     return (
-      <div className="flex items-end gap-3 w-full flex-row-reverse">
-        {/* Avatar pinned to bottom of bubble */}
+      <div className="flex items-end gap-3 w-full flex-row-reverse group">
         <div className="flex-shrink-0 pb-0.5">
           <Avatar name={msg.senderName} profileImage={msg.senderProfileImage} size={7} />
         </div>
         <div className="flex flex-col items-end max-w-[70%] min-w-0">
           <span className="text-xs text-gray-400 mb-1">{time}</span>
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
-            {msg.content}
+          <div className="relative">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed shadow-sm break-words whitespace-pre-wrap">
+              {msg.content}
+            </div>
+            {onDelete && (
+              <button
+                onClick={() => onDelete(msg)}
+                className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition hover:bg-red-600"
+                title="Delete message"
+              >
+                <X size={10} />
+              </button>
+            )}
           </div>
         </div>
       </div>
     )
   }
 
-  // ── Other user's message ────────────────────────────────────────────────────
+  // ── Other user's message — no delete button (you don't own it) ────────────
   return (
     <div className="flex items-start gap-3 w-full min-w-0">
       <div className="flex-shrink-0 pt-0.5">
@@ -129,7 +853,7 @@ function TypingIndicator() {
 // ── Shared message input ──────────────────────────────────────────────────────
 
 function MessageInput({ value, onChange, onSend, sending, placeholder, variant = 'blue' }) {
-  const focusClass  = variant === 'violet'
+  const focusClass = variant === 'violet'
     ? 'focus-within:border-violet-400 focus-within:bg-white'
     : 'focus-within:border-blue-400 focus-within:bg-white'
   const btnClass = variant === 'violet'
@@ -172,10 +896,12 @@ function MessageInput({ value, onChange, onSend, sending, placeholder, variant =
 
 function AIChatPanel({ course }) {
   const { user } = useAuth()
-  const [messages, setMessages] = useState([])
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(true)
-  const [sending, setSending]   = useState(false)
+  const [messages, setMessages]     = useState([])
+  const [input, setInput]           = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [sending, setSending]       = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const bottomRef = useRef(null)
 
   const loadHistory = useCallback(async () => {
@@ -187,7 +913,7 @@ function AIChatPanel({ course }) {
           id: 'welcome',
           senderId: null,
           senderName: 'AI Assistant',
-          content: `Hi! 👋 I'm your AI assistant for ${course.courseTitle}. Ask me anything about the course content, concepts, or if you need help understanding a topic!`,
+          content: `Hi! 👋 I'm your AI assistant for **${course.courseTitle}**. Ask me anything about the course content, concepts, or if you need help understanding a topic!`,
           aiMessage: true,
           sentAt: new Date().toISOString(),
         }])
@@ -211,14 +937,15 @@ function AIChatPanel({ course }) {
     const question = input.trim()
     if (!question || sending) return
 
-    const tempId = `temp-${Date.now()}`
+    // Optimistically add the student's question to UI
+    const tempQuestionId = `temp-q-${Date.now()}`
     const userMsg = {
-      id: tempId,
+      id: tempQuestionId,
       senderId: user.id,
       senderName: user.name,
       senderProfileImage: user.profileImage,
       content: question,
-      aiMessage: false,
+      aiMessage: true,    // question is now tagged aiMessage=true in DB
       sentAt: new Date().toISOString(),
     }
     setMessages(prev => [...prev, userMsg])
@@ -236,61 +963,135 @@ function AIChatPanel({ course }) {
         aiMessage: true,
         sentAt: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, aiMsg])
+      // Replace temp with real, then add reply
+      setMessages(prev => [
+        ...prev.filter(m => m.id !== tempQuestionId),
+        { ...userMsg, id: `q-${Date.now()}` },
+        aiMsg,
+      ])
     } catch (err) {
       const errMsg = err?.response?.data?.message ?? 'AI assistant is currently unavailable'
       toast.error(errMsg)
-      setMessages(prev => prev.filter(m => m.id !== tempId))
+      setMessages(prev => prev.filter(m => m.id !== tempQuestionId))
       setInput(question)
     } finally {
       setSending(false)
     }
   }
 
+  const handleClearChat = async () => {
+    setConfirmClear(false)
+    try {
+      await messageApi.clearAiChat(course.courseId)
+      setMessages([])
+      toast.success('AI chat cleared')
+    } catch {
+      toast.error('Failed to clear chat')
+    }
+  }
+
+  const handleDeleteMessage = async () => {
+    if (!deleteTarget) return
+    const target = deleteTarget
+    setDeleteTarget(null)
+
+    // Optimistic removal
+    setMessages(prev => prev.filter(m => m.id !== target.id))
+
+    try {
+      await messageApi.deleteMessage(target.id)
+    } catch {
+      toast.error('Failed to delete message')
+      // Reload to restore state
+      loadHistory()
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow flex-shrink-0">
-          <Sparkles size={16} className="text-white" />
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-gray-800 text-sm">AI Course Assistant</p>
-          <p className="text-xs text-violet-500 truncate">{course.courseTitle}</p>
-        </div>
-        <span className="ml-auto flex items-center gap-1.5 text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full font-medium flex-shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          Online
-        </span>
-      </div>
+    <>
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear AI Chat"
+        message="All messages in this AI chat will be permanently deleted. This cannot be undone."
+        onConfirm={handleClearChat}
+        onCancel={() => setConfirmClear(false)}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Message"
+        message="This message will be permanently deleted."
+        onConfirm={handleDeleteMessage}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50 min-h-0">
-        {loading ? (
-          <div className="flex justify-center items-center h-full">
-            <Loader2 size={24} className="animate-spin text-violet-400" />
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow flex-shrink-0">
+            <Sparkles size={16} className="text-white" />
           </div>
-        ) : (
-          messages.map(msg => (
-            <MessageBubble key={msg.id} msg={msg} currentUserId={user?.id} />
-          ))
-        )}
-        {sending && <TypingIndicator />}
-        <div ref={bottomRef} />
-      </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-800 text-sm">AI Course Assistant</p>
+            <p className="text-xs text-violet-500 truncate">{course.courseTitle}</p>
+          </div>
+          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+            <span className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              Online
+            </span>
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+              title="Clear chat history"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0">
-        <MessageInput
-          value={input}
-          onChange={setInput}
-          onSend={handleSend}
-          sending={sending}
-          placeholder="Ask anything about the course..."
-          variant="violet"
-        />
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50 min-h-0">
+          {loading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 size={24} className="animate-spin text-violet-400" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
+              <Sparkles size={32} className="opacity-25" />
+              <p className="text-sm">Chat cleared. Ask me anything!</p>
+            </div>
+          ) : (
+            messages.map(msg => (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                currentUserId={user?.id}
+                onDelete={
+                  // Don't show delete on welcome placeholder (string id)
+                  typeof msg.id === 'string' && msg.id.startsWith('welcome')
+                    ? null
+                    : (m) => setDeleteTarget(m)
+                }
+              />
+            ))
+          )}
+          {sending && <TypingIndicator />}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        <div className="flex-shrink-0">
+          <MessageInput
+            value={input}
+            onChange={setInput}
+            onSend={handleSend}
+            sending={sending}
+            placeholder="Ask anything about the course..."
+            variant="violet"
+          />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -298,10 +1099,12 @@ function AIChatPanel({ course }) {
 
 function HumanChatPanel({ course, otherUser, role }) {
   const { user } = useAuth()
-  const [messages, setMessages] = useState([])
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [sending, setSending]   = useState(false)
+  const [messages, setMessages]         = useState([])
+  const [input, setInput]               = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [sending, setSending]           = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const bottomRef = useRef(null)
 
   const fetchMessages = useCallback(async () => {
@@ -342,57 +1145,114 @@ function HumanChatPanel({ course, otherUser, role }) {
     }
   }
 
+  const handleClearChat = async () => {
+    setConfirmClear(false)
+    try {
+      await messageApi.clearDirectChat(course.courseId, otherUser.id)
+      setMessages([])
+      toast.success('Chat cleared')
+    } catch {
+      toast.error('Failed to clear chat')
+    }
+  }
+
+  const handleDeleteMessage = async () => {
+    if (!deleteTarget) return
+    const target = deleteTarget
+    setDeleteTarget(null)
+
+    setMessages(prev => prev.filter(m => m.id !== target.id))
+
+    try {
+      await messageApi.deleteMessage(target.id)
+    } catch {
+      toast.error('Failed to delete message')
+      fetchMessages()
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-white flex-shrink-0">
-        <Avatar name={otherUser.name} profileImage={otherUser.profileImage} size={9} />
-        <div className="min-w-0">
-          <p className="font-semibold text-gray-800 text-sm">{otherUser.name}</p>
-          <p className="text-xs text-gray-400 truncate">
-            {role === 'STUDENT' ? 'Instructor' : 'Student'} · {course.courseTitle}
-          </p>
+    <>
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear Chat"
+        message={`All messages between you and ${otherUser.name} in this course will be permanently deleted.`}
+        onConfirm={handleClearChat}
+        onCancel={() => setConfirmClear(false)}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Message"
+        message="This message will be permanently deleted."
+        onConfirm={handleDeleteMessage}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-white flex-shrink-0">
+          <Avatar name={otherUser.name} profileImage={otherUser.profileImage} size={9} />
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-800 text-sm">{otherUser.name}</p>
+            <p className="text-xs text-gray-400 truncate">
+              {role === 'STUDENT' ? 'Instructor' : 'Student'} · {course.courseTitle}
+            </p>
+          </div>
+          <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={fetchMessages}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
+              title="Refresh messages"
+            >
+              <RefreshCw size={15} />
+            </button>
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+              title="Clear chat history"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
         </div>
-        <button
-          onClick={fetchMessages}
-          className="ml-auto p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition flex-shrink-0"
-          title="Refresh messages"
-        >
-          <RefreshCw size={15} />
-        </button>
-      </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50 min-h-0">
-        {loading ? (
-          <div className="flex justify-center items-center h-full">
-            <Loader2 size={24} className="animate-spin text-blue-400" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
-            <MessageSquare size={32} className="opacity-30" />
-            <p className="text-sm">No messages yet. Start the conversation!</p>
-          </div>
-        ) : (
-          messages.map(msg => (
-            <MessageBubble key={msg.id} msg={msg} currentUserId={user?.id} />
-          ))
-        )}
-        <div ref={bottomRef} />
-      </div>
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/50 min-h-0">
+          {loading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 size={24} className="animate-spin text-blue-400" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
+              <MessageSquare size={32} className="opacity-30" />
+              <p className="text-sm">No messages yet. Start the conversation!</p>
+            </div>
+          ) : (
+            messages.map(msg => (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                currentUserId={user?.id}
+                onDelete={(m) => setDeleteTarget(m)}
+              />
+            ))
+          )}
+          <div ref={bottomRef} />
+        </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0">
-        <MessageInput
-          value={input}
-          onChange={setInput}
-          onSend={handleSend}
-          sending={sending}
-          placeholder={`Message ${otherUser.name}...`}
-          variant="blue"
-        />
+        {/* Input */}
+        <div className="flex-shrink-0">
+          <MessageInput
+            value={input}
+            onChange={setInput}
+            onSend={handleSend}
+            sending={sending}
+            placeholder={`Message ${otherUser.name}...`}
+            variant="blue"
+          />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -524,9 +1384,9 @@ export default function MessagingPage() {
   const [chats, setChats]                     = useState([])
   const [loadingChats, setLoadingChats]       = useState(true)
   const [activeChat, setActiveChat]           = useState(null)
-  const [chatType, setChatType]               = useState('ai')      // 'ai' | 'instructor'
+  const [chatType, setChatType]               = useState('ai')
   const [selectedStudent, setSelectedStudent] = useState(null)
-  const [showList, setShowList]               = useState(true)       // mobile toggle
+  const [showList, setShowList]               = useState(true)
 
   useEffect(() => {
     const fetchFn = role === 'STUDENT'
